@@ -4,10 +4,16 @@ import type { Element } from "../dom/Element.ts";
 import type { HTMLElement } from "../dom/HTMLElement.ts";
 import type { SVGElement } from "../dom/SVGElement.ts";
 import type { MathMLElement } from "../dom/MathMLElement.ts";
+import type { Node } from "../dom/Node.ts";
 
 import type { DOMContext } from "../dom/DOMContext.ts";
 import { IterableHandler } from "datex-core-js-legacy/utils/iterable-handler.ts";
+import { DX_VALUE } from "datex-core-js-legacy/datex_all.ts";
+import { DocumentFragment } from "../dom/DocumentFragment.ts";
+import { Text } from "../dom/html/Text.ts";
+import { HTMLTemplateElement } from "../dom/html/HTMLTemplateElement.ts";
 
+export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
 type appendableContentBase = Datex.RefOrValue<Element|DocumentFragment|string|number|bigint|boolean>|Promise<appendableContent>;
 type appendableContent = appendableContentBase|Promise<appendableContentBase>
@@ -41,7 +47,7 @@ export class DOMUtils {
      */
     append<T extends Element|DocumentFragment>(parent:T, children:appendableContent|appendableContent[]):T | undefined {
         // @ts-ignore extract children ref iterable from DocumentFragment
-        if (children instanceof DocumentFragment && children._uix_children) children = children._uix_children
+        if (children instanceof this.context.DocumentFragment && children._uix_children) children = children._uix_children
 
         // is ref and iterable/element
         if (!(parent instanceof this.context.DocumentFragment) && Datex.Pointer.isReference(children) && (children instanceof Array || children instanceof Map || children instanceof Set)) {
@@ -126,7 +132,7 @@ export class DOMUtils {
 
     _append<T extends Element|DocumentFragment>(parent:T, children:appendableContent[], oldChildren?: Node[], onAppend?: ((list: Node[]) => void)):T {
         // use content if parent is <template>
-        const element = parent instanceof HTMLTemplateElement ? parent.content : parent;
+        const element = parent instanceof this.context.HTMLTemplateElement ? parent.content : parent;
 
         let lastAnchor: Node | undefined = oldChildren?.at(-1);
 
@@ -279,7 +285,7 @@ export class DOMUtils {
             
         }
         // special form 'action' callback
-        else if (element instanceof HTMLFormElement && attr === "action") {
+        else if (element instanceof this.context.HTMLFormElement && attr === "action") {
             for (const handler of ((val instanceof Array || val instanceof Set) ? val : [val])) {
                 // action callback function
                 if (typeof handler == "function") {
@@ -290,15 +296,22 @@ export class DOMUtils {
                     (<elWithEventListeners>element)[EVENT_LISTENERS].getAuto(eventName).add(handler);
                 }
                 // default "action" (path)
-                else element.setAttribute(attr, formatAttributeValue(val,root_path));
+                else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
             }
             
         }
 
         // normal attribute
-        else element.setAttribute(attr, formatAttributeValue(val,root_path));
+        else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
 
         return true;
+        
+    }
+
+    formatAttributeValue(val:any, root_path?:string|URL): string {
+        if (root_path==undefined) return val?.toString?.()  ?? ""
+        else if (typeof val == "string" && (val.startsWith("./") || val.startsWith("../"))) return new URL(val, root_path).toString();
+        else return val?.toString?.() ?? ""
     }
 
 
@@ -421,7 +434,6 @@ export class DOMUtils {
 
     getTextNode(content:any) {
         const textNode = this.document.createTextNode("");
-        // @ts-ignore DX_VALUE
         textNode[DX_VALUE] = content;
 
         Datex.Ref.observeAndInit(content, (v,k,t) => {
@@ -429,5 +441,64 @@ export class DOMUtils {
         }, undefined, undefined);
 
         return textNode;
+    }
+
+    /**
+     * 
+     * @param anchor 
+     * @param element 
+     * @param appendAll if false, only shadowRoot is set, other elements are ignored
+     * @returns true if element appended
+     */
+    appendElementOrShadowRoot(anchor: Element|DocumentFragment, element: Element|DocumentFragment|Text, appendAll = true, insertAfterAnchor = false, onAppend?: ((list: (Node)[]) => void)) {
+        const appendedContent: Node[] = [];
+        for (const candidate of (element instanceof DocumentFragment ? [...(element.childNodes as any)] : [element]) as unknown as Node[]) {
+            if (anchor instanceof this.context.Element && candidate instanceof this.context.HTMLTemplateElement && candidate.hasAttribute("shadowrootmode")) {
+                if (anchor.shadowRoot) throw new Error("element <"+anchor.tagName.toLowerCase()+"> already has a shadow root")
+                const shadowRoot = anchor.attachShadow({mode: (candidate.getAttribute("shadowrootmode")??"open") as "open"|"closed"});
+                shadowRoot.append((candidate as HTMLTemplateElement).content);
+                appendedContent.push(shadowRoot);
+                if (!appendAll) {
+                    onAppend?.(appendedContent);
+                    return true;
+                }
+            }
+            else if (appendAll) {
+                if (insertAfterAnchor)
+                    anchor.parentElement?.insertBefore(candidate, anchor.nextSibling); // anchor is sibbling (e.g. old elem)
+                else anchor.append(candidate); // anchor is parent
+                appendedContent.push(candidate)
+            }
+        }
+        onAppend?.(appendedContent);
+        return appendAll;
+    }
+
+    // jquery-like event listener (multiple events at once)
+    addEventListener<E extends HTMLElement>(target:E, events:string, listener: (this: HTMLElement, ev: Event) => any, options?: boolean | AddEventListenerOptions){
+        for (const event of events.split(" ")){
+            target.addEventListener(event.trim(), listener, options);
+        }
+    }
+
+    removeEventListener<E extends HTMLElement>(target:E, events:string, listener: (this: HTMLElement, ev: Event) => any, options?: boolean | AddEventListenerOptions){
+        for (const event of events.split(" ")){
+            target.removeEventListener(event.trim(), listener, options);
+        }
+    }
+
+    // jquery-like event listener (multiple events at once + delegate with query selector)
+    addDelegatedEventListener<E extends Element>(target:E, events:string, selector:string,  listener: (this: Element, ev: Event) => any, options?: boolean | AddEventListenerOptions){
+        for (const event of events.split(" ")){
+            target.addEventListener(event.trim(), (event) => {
+                if (event.target && event.target instanceof this.context.Element && event.target.closest(selector)) {
+                    listener.call(event.target, event)
+                }
+            }, options);
+        }
+    }
+
+    addProxy(element:Element) {
+        return $$(element)
     }
 }

@@ -2,7 +2,7 @@ import type { DocumentFragment } from "../dom/DocumentFragment.ts";
 import type { Element } from "../dom/Element.ts";
 import type { HTMLElement } from "../dom/HTMLElement.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import type { DOMUtils } from "../datex-bindings/DOMUtils.ts";
+import { JSX_INSERT_STRING, type DOMUtils } from "../datex-bindings/DOMUtils.ts";
 
 import { Logger } from "datex-core-js-legacy/datex_all.ts";
 import { getCallerFile } from "datex-core-js-legacy/utils/caller_metadata.ts";
@@ -13,7 +13,6 @@ const logger = new Logger("JSX Parser");
 export const SET_DEFAULT_ATTRIBUTES: unique symbol = Symbol("SET_DEFAULT_ATTRIBUTES");
 export const SET_DEFAULT_CHILDREN: unique symbol = Symbol("SET_DEFAULT_CHILDREN");
 
-export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
 export function escapeString(string:string) {
 	return {[JSX_INSERT_STRING]:true, val:string};

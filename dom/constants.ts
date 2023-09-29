@@ -1,0 +1,1 @@
+export const DOM_INTERNAL = Symbol("DOM_INTERNAL");

@@ -8,11 +8,68 @@ import type { Element } from "../dom/Element.ts"
 
 let definitionsLoaded = false;
 
+const OBSERVER = Symbol("OBSERVER");
+const OBSERVER_EXCLUDE_UPDATES = Symbol("OBSERVER_EXCLUDE_UPDATES");
+const OBSERVER_IGNORE = Symbol("OBSERVER_IGNORE");
+
+
 export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 
 	// definitions cannot be loaded multiple times
 	if (definitionsLoaded) throw new Error("DATEX type binding very already loaded for a window object")
 	definitionsLoaded = true;
+
+	function bindObserver(element:Element) {
+		const pointer = Datex.Pointer.getByValue(element);
+		if (!pointer) throw new Error("cannot bind observers for HTMLElement without pointer")
+		if (!element.dataset) throw new Error("element has nodaset, todo");
+		if (!element.dataset['ptr']) element.dataset['ptr'] = pointer.id;
+
+		// @ts-ignore
+		if (element[OBSERVER]) return;
+
+		const handler: MutationCallback = (mutations: MutationRecord[], observer: MutationObserver) => {
+			// @ts-ignore
+			if (element[OBSERVER_IGNORE]) {
+				// @ts-ignore
+				element[OBSERVER_IGNORE] = false;
+				return;
+			}
+			const ptr = Datex.Pointer.getByValue(element);
+			if (!ptr) return;
+
+			// @ts-ignore
+			if (element[OBSERVER_EXCLUDE_UPDATES]) {
+				// @ts-ignore
+				ptr.excludeEndpointFromUpdates(element[OBSERVER_EXCLUDE_UPDATES])
+				// @ts-ignore
+				element[OBSERVER_EXCLUDE_UPDATES] = undefined;
+			}
+
+			for (const mut of mutations) {
+				if (mut.type == "attributes") {
+					if (mut.attributeName == "data-ptr") continue;
+					// TODO find style changes, don't send full style attribute
+					ptr.handleSetObservers(mut.attributeName)
+				}
+				else if (mut.type == "childList") {
+					console.log("mut")//,mut, mut.addedNodes, mut.removedNodes)
+				}
+			}
+
+			ptr.enableUpdatesForAll();
+			
+		}
+
+		// @ts-ignore
+		element[OBSERVER] = new context.MutationObserver(handler)
+		// @ts-ignore
+		// element[OBSERVER].observe(element, {attributes: true, childList: true})
+
+		return element;
+	}
+
+
 
 	// handle htmlfragment (DocumentFragment)
 	Datex.Type.get('htmlfragment').setJSInterface({
@@ -41,8 +98,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 		const children = [];
 		for (let i = 0; i < parent.childNodes.length; i++) {
 			const child = parent.childNodes[i];
-			// @ts-ignore
-			if (child instanceof Text) children.push(child[DX_VALUE] ?? child.textContent);
+			if (child instanceof context.Text) children.push(child[DX_VALUE] ?? child.textContent);
 			else children.push(child);
 		}
 		return children;
@@ -138,7 +194,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 			// @ts-ignore 
 			const style = val._original_style??val.style;
 			let style_props = style._importants ? [...Object.keys(style._importants)] : style;
-			if (style_props && !(style_props instanceof Array || (globalThis.CSSStyleDeclaration && style_props instanceof globalThis.CSSStyleDeclaration))) style_props = [...Object.keys(style_props)];
+			if (style_props && !(style_props instanceof Array || (context.CSSStyleDeclaration && style_props instanceof context.CSSStyleDeclaration))) style_props = [...Object.keys(style_props)];
 
 			if (style_props instanceof Array) {
 				for (const prop of style_props) {
@@ -195,73 +251,17 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 
 	Datex.Type.get('html').setJSInterface(Object.assign(Object.create(elementInterface), {
 		_name: 'html',
-		class: globalThis.HTMLElement
+		class: context.HTMLElement
 	}))
 
 	Datex.Type.get('svg').setJSInterface(Object.assign(Object.create(elementInterface), {
 		_name: 'svg',
-		class: globalThis.SVGElement
+		class: context.SVGElement
 	}))
 
 	// Datex.Type.get('mathml').setJSInterface(Object.assign(Object.create(elementInterface), {
-	//     class: globalThis.MathMLElement
+	//     class: context.MathMLElement
 	// }))
 
 
-}
-
-
-const OBSERVER = Symbol("OBSERVER");
-const OBSERVER_EXCLUDE_UPDATES = Symbol("OBSERVER_EXCLUDE_UPDATES");
-const OBSERVER_IGNORE = Symbol("OBSERVER_IGNORE");
-
-
-export function bindObserver(element:Element) {
-	const pointer = Datex.Pointer.getByValue(element);
-	if (!pointer) throw new Error("cannot bind observers for HTMLElement without pointer")
-	if (!element.dataset) throw new Error("element has nodaset, todo");
-	if (!element.dataset['ptr']) element.dataset['ptr'] = pointer.id;
-
-	// @ts-ignore
-	if (element[OBSERVER]) return;
-
-	const handler: MutationCallback = (mutations: MutationRecord[], observer: MutationObserver) => {
-		// @ts-ignore
-		if (element[OBSERVER_IGNORE]) {
-			// @ts-ignore
-			element[OBSERVER_IGNORE] = false;
-			return;
-		}
-		const ptr = Datex.Pointer.getByValue(element);
-		if (!ptr) return;
-
-		// @ts-ignore
-		if (element[OBSERVER_EXCLUDE_UPDATES]) {
-			// @ts-ignore
-			ptr.excludeEndpointFromUpdates(element[OBSERVER_EXCLUDE_UPDATES])
-			// @ts-ignore
-			element[OBSERVER_EXCLUDE_UPDATES] = undefined;
-		}
-
-		for (const mut of mutations) {
-			if (mut.type == "attributes") {
-				if (mut.attributeName == "data-ptr") continue;
-				// TODO find style changes, don't send full style attribute
-				ptr.handleSetObservers(mut.attributeName)
-			}
-			else if (mut.type == "childList") {
-				console.log("mut")//,mut, mut.addedNodes, mut.removedNodes)
-			}
-		}
-
-		ptr.enableUpdatesForAll();
-		
-	}
-
-	// @ts-ignore
-	element[OBSERVER] = new MutationObserver(handler)
-	// @ts-ignore
-	// element[OBSERVER].observe(element, {attributes: true, childList: true})
-
-	return element;
 }

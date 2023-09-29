@@ -2,9 +2,8 @@ import { $$, Datex } from "datex-core-js-legacy";
 import { DOMUtils } from "./DOMUtils.ts"
 import { DX_VALUE, INIT_PROPS, logger } from "datex-core-js-legacy/datex_all.ts";
 import { DX_IGNORE } from "datex-core-js-legacy/runtime/constants.ts";
-import type {DocumentFragment} from "../dom/DocumentFragment.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import type { Element } from "../dom/Element.ts"
+import type { Element, DocumentFragment, MutationObserver } from "../dom/mod.ts"
 
 let definitionsLoaded = false;
 
@@ -248,7 +247,6 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 
 	}
 
-
 	Datex.Type.get('html').setJSInterface(Object.assign(Object.create(elementInterface), {
 		_name: 'html',
 		class: context.HTMLElement
@@ -259,9 +257,9 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 		class: context.SVGElement
 	}))
 
-	// Datex.Type.get('mathml').setJSInterface(Object.assign(Object.create(elementInterface), {
-	//     class: context.MathMLElement
-	// }))
+	Datex.Type.get('mathml').setJSInterface(Object.assign(Object.create(elementInterface), {
+	    class: context.MathMLElement
+	}))
 
 
 }

@@ -1,19 +1,19 @@
 # UIX DOM
 
-This library implements a standalone DOM subset that can be used in deno or in the browser.
+This library implements a standalone DOM subset based on [Deno DOM](https://github.com/b-fuze/deno-dom) that can be used in deno or in the browser.
 
 UIX DOM also supports DATEX bindings for DOM elements from the UIX DOM library, as well as for normal browser DOM elements.
 
+![Example 1](./res/image1.png)
 
-## Create a new DOM Context
+## Loading the DOM Context
 
-To get started, create a new `DOMContext` object:
+To get started, import the context from "mod.ts":
 
 ```ts
-import { DOMContext } from "./dom/DOMContext.ts";
-const context = new DOMContext()
+import * as context from "../uix-dom/dom/mod.ts";
 ```
-This context includes definitions for all Elements, as well as a `window` object.
+This context includes definitions for all Elements, as well as a `document` object.
 It can be used interchangably with the `globalThis` object in the browser.
 
 ## Enabling DATEX bindings

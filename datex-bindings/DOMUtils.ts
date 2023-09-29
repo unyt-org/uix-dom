@@ -1,17 +1,10 @@
 import { Datex } from "datex-core-js-legacy"
-import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../dom/attributes.ts";
-import type { Element } from "../dom/Element.ts";
-import type { HTMLElement } from "../dom/HTMLElement.ts";
-import type { SVGElement } from "../dom/SVGElement.ts";
-import type { MathMLElement } from "../dom/MathMLElement.ts";
-import type { Node } from "../dom/Node.ts";
+import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../dom/deno-dom/src/dom/types/attributes.ts";
+import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment } from "../dom/mod.ts";
 
-import type { DOMContext } from "../dom/DOMContext.ts";
 import { IterableHandler } from "datex-core-js-legacy/utils/iterable-handler.ts";
 import { DX_VALUE } from "datex-core-js-legacy/datex_all.ts";
-import { DocumentFragment } from "../dom/DocumentFragment.ts";
-import { Text } from "../dom/html/Text.ts";
-import { HTMLTemplateElement } from "../dom/html/HTMLTemplateElement.ts";
+import { DOMContext } from "../dom/DOMContext.ts";
 
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
@@ -24,7 +17,7 @@ export class DOMUtils {
 	mathMLNS = "http://www.w3.org/1998/Math/MathML"
 	
 	constructor(public readonly context: DOMContext) {}
-    get document() {return this.context.window.document}
+    get document() {return this.context.document}
 
 
 	escapeHtml(str:string) {
@@ -53,8 +46,8 @@ export class DOMUtils {
         if (!(parent instanceof this.context.DocumentFragment) && Datex.Pointer.isReference(children) && (children instanceof Array || children instanceof Map || children instanceof Set)) {
             // is iterable ref
             // TODO: support promises
-            const startAnchor = new Comment("start " + Datex.Pointer.getByValue(children)?.idString())
-            const endAnchor = new Comment("end " + Datex.Pointer.getByValue(children)?.idString())
+            const startAnchor = new this.context.Comment("start " + Datex.Pointer.getByValue(children)?.idString())
+            const endAnchor = new this.context.Comment("end " + Datex.Pointer.getByValue(children)?.idString())
             parent.append(startAnchor, endAnchor)
 
             const iterableHandler = new IterableHandler(children, {
@@ -410,7 +403,7 @@ export class DOMUtils {
         // try to collapse value
         else if (value!=undefined) {
             // css variable
-            if (value.toString().startsWith('var(--')) return getComputedStyle(document.documentElement).getPropertyValue(value?.toString().replace('var(','').replace(')','')).trim();
+            if (value.toString().startsWith('var(--')) return this.context.getComputedStyle(this.document.documentElement).getPropertyValue(value?.toString().replace('var(','').replace(')','')).trim();
             // css color name
             else if (!value.toString().startsWith("#")) return color_names[<keyof typeof color_names>value.toString().toLowerCase()] ?? ''
             // normal string value
@@ -426,7 +419,7 @@ export class DOMUtils {
             else return this.getTextNode(values[0]);
         }
         else {
-            const fragment = new DocumentFragment();
+            const fragment = new this.context.DocumentFragment();
             values.forEach(c=>this.append(fragment, c))
             return fragment;
         }
@@ -452,7 +445,7 @@ export class DOMUtils {
      */
     appendElementOrShadowRoot(anchor: Element|DocumentFragment, element: Element|DocumentFragment|Text, appendAll = true, insertAfterAnchor = false, onAppend?: ((list: (Node)[]) => void)) {
         const appendedContent: Node[] = [];
-        for (const candidate of (element instanceof DocumentFragment ? [...(element.childNodes as any)] : [element]) as unknown as Node[]) {
+        for (const candidate of (element instanceof this.context.DocumentFragment ? [...(element.childNodes as any)] : [element]) as unknown as Node[]) {
             if (anchor instanceof this.context.Element && candidate instanceof this.context.HTMLTemplateElement && candidate.hasAttribute("shadowrootmode")) {
                 if (anchor.shadowRoot) throw new Error("element <"+anchor.tagName.toLowerCase()+"> already has a shadow root")
                 const shadowRoot = anchor.attachShadow({mode: (candidate.getAttribute("shadowrootmode")??"open") as "open"|"closed"});

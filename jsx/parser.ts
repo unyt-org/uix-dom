@@ -1,6 +1,4 @@
-import type { DocumentFragment } from "../dom/DocumentFragment.ts";
-import type { Element } from "../dom/Element.ts";
-import type { HTMLElement } from "../dom/HTMLElement.ts";
+import type { HTMLElement, Element, DocumentFragment } from "../dom/mod.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
 import { JSX_INSERT_STRING, type DOMUtils } from "../datex-bindings/DOMUtils.ts";
 
@@ -76,7 +74,7 @@ export function getParseJSX(context: DOMContext, domUtils?: DOMUtils) {
 				delete props.mode
 			}
 			
-			element = domUtils ? domUtils.createElement(type) : context.window.document.createElement(type)
+			element = domUtils ? domUtils.createElement(type) : context.document.createElement(type)
 		}
 	
 		if (set_default_attributes) {

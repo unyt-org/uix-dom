@@ -1,7 +1,6 @@
 import type { Datex } from "datex-core-js-legacy/datex.ts";
 import type { validHTMLElementAttrs, validHTMLElementSpecificAttrs, validSVGElementSpecificAttrs } from "../dom/attributes.ts";
-import type { Element } from "../dom/Element.ts";
-import type { DocumentFragment } from "../dom/DocumentFragment.ts";
+import type { Element, DocumentFragment } from "../dom/mod.ts";
 
 type DomElement = Element
 

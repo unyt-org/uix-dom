@@ -1,6 +1,6 @@
 import { Datex } from "datex-core-js-legacy"
 import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../dom/deno-dom/src/dom/types/attributes.ts";
-import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment } from "../dom/mod.ts";
+import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment, Document } from "../dom/mod.ts";
 
 import { IterableHandler } from "datex-core-js-legacy/utils/iterable-handler.ts";
 import { DX_VALUE } from "datex-core-js-legacy/datex_all.ts";

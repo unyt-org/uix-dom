@@ -3,7 +3,7 @@ import { DOMUtils } from "./DOMUtils.ts"
 import { DX_VALUE, INIT_PROPS, logger } from "datex-core-js-legacy/datex_all.ts";
 import { DX_IGNORE } from "datex-core-js-legacy/runtime/constants.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import type { Element, DocumentFragment, MutationObserver } from "../dom/mod.ts"
+import type { Element, DocumentFragment, MutationObserver, Document } from "../dom/mod.ts"
 
 let definitionsLoaded = false;
 
@@ -92,7 +92,29 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 		}
 	})
 
-	function serializeChildren(parent:Element|DocumentFragment) {
+	// handle htmlfragment (Document)
+	Datex.Type.get('htmldocument').setJSInterface({
+		class: context.Document,
+
+		create_proxy(value, pointer) {
+			return value;
+		},
+
+		// called when replicating from state
+		cast_no_tuple(val, type, ctx) {
+			const document = new context.Document();
+			for (const child of val) {
+				document.appendChild(child);
+			}
+			return document;
+		},
+
+		serialize(val:Document) {
+			return serializeChildren(val)
+		}
+	})
+
+	function serializeChildren(parent:Element|DocumentFragment|Document) {
 		// children
 		const children = [];
 		for (let i = 0; i < parent.childNodes.length; i++) {
@@ -192,8 +214,10 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 			// style (uix _original_style)
 			// @ts-ignore 
 			const style = val._original_style??val.style;
+			
 			let style_props = style._importants ? [...Object.keys(style._importants)] : style;
 			if (style_props && !(style_props instanceof Array || (context.CSSStyleDeclaration && style_props instanceof context.CSSStyleDeclaration))) style_props = [...Object.keys(style_props)];
+
 
 			if (style_props instanceof Array) {
 				for (const prop of style_props) {

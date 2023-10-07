@@ -5,6 +5,9 @@ import { DOMContext } from "../dom/DOMContext.ts";
 
 export function enableDatexBindings(context: DOMContext) {
 	const domUtils = new DOMUtils(context);
-	loadDefinitions(context, domUtils);
-	return domUtils;
+	const {bindObserver} = loadDefinitions(context, domUtils);
+	return {
+		domUtils,
+		bindObserver
+	};
 }

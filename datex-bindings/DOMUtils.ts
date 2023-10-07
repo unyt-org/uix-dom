@@ -1,6 +1,6 @@
 import { Datex } from "datex-core-js-legacy"
-import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../dom/deno-dom/src/dom/types/attributes.ts";
-import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment, Document } from "../dom/mod.ts";
+import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../attributes.ts";
+import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment, Document, HTMLInputElement } from "../dom/mod.ts";
 
 import { IterableHandler } from "datex-core-js-legacy/utils/iterable-handler.ts";
 import { DX_VALUE } from "datex-core-js-legacy/datex_all.ts";
@@ -11,10 +11,19 @@ export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 type appendableContentBase = Datex.RefOrValue<Element|DocumentFragment|string|number|bigint|boolean>|Promise<appendableContent>;
 type appendableContent = appendableContentBase|Promise<appendableContentBase>
 
+
+// deno-lint-ignore no-namespace
+export namespace DOMUtils {
+    export type elWithEventListeners = HTMLElement & {[DOMUtils.EVENT_LISTENERS]:Map<keyof HTMLElementEventMap, Set<(...args:any)=>any>>}
+
+}
+
 export class DOMUtils {
 
-    svgNS = "http://www.w3.org/2000/svg"
-	mathMLNS = "http://www.w3.org/1998/Math/MathML"
+    static readonly EVENT_LISTENERS: unique symbol = Symbol("DOMUtils.EVENT_LISTENERS");
+
+    readonly svgNS = "http://www.w3.org/2000/svg"
+	readonly mathMLNS = "http://www.w3.org/1998/Math/MathML"
 	
 	constructor(public readonly context: DOMContext) {}
     get document() {return this.context.document}
@@ -24,6 +33,105 @@ export class DOMUtils {
         if (typeof str != "string") return "";
         return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replaceAll('"', '&quot;').replaceAll("'", '&#039;').replace('\u0009', '&#9;')
     }
+
+
+    createHTMLElement(html?:string, content?:Datex.RefOrValue<HTMLElement>|(Datex.RefOrValue<HTMLElement>)[]):HTMLElement {
+        if (html == undefined) html = "<div></div>";
+        const template = this.document.createElement('template');
+        html = html.trim();
+        template.innerHTML = html;
+        const element = <HTMLElement>template.content.firstChild;
+        if (content != undefined) {
+            // set html
+            if (Datex.Ref.collapseValue(content,true,true) instanceof this.context.HTMLElement) this.setElementHTML(element, <HTMLElement>content);
+            // set child nodes
+            if (content instanceof Array) {
+                for (const el of content){
+                    if (Datex.Ref.collapseValue(el,true,true) instanceof this.context.HTMLElement) element.append(Datex.Ref.collapseValue(el,true,true))
+                    else {
+                        const container = this.document.createElement("div");
+                        this.setElementText(container, el);
+                        element.append(container);
+                    }
+                }
+            }
+            // set text
+            else this.setElementText(element, content);
+        }
+        return element;
+    }
+
+    // remember which values are currently synced with element content - for unobserve
+    private element_bound_html_values = new WeakMap<Element, Datex.Value>();
+    private element_bound_text_values = new WeakMap<Element, Datex.Value>();
+
+    private updateElementHTML = function (this:Element, html:Element|string){
+        if (html instanceof Element) {
+            this.innerHTML = '';
+            this.append(html)
+        } 
+        else this.innerHTML = html ?? '';
+    }
+
+    private updateElementText = function (this:HTMLElement, text:unknown){
+        if (this instanceof Datex.Ref) console.warn("update text invalid", this, text)
+        
+        if (text instanceof Datex.Markdown) {
+            this.innerHTML = (text.getHTML() as HTMLElement).children[0].innerHTML;
+        }
+        // @ts-ignore _use_markdown
+        else if (this._use_markdown && typeof text == "string") {
+            this.innerHTML = (new Datex.Markdown(text).getHTML() as HTMLElement).children[0].innerHTML;
+        }
+        else this.innerText = ((<any>text)?.toString()) ?? ''
+    }
+
+    setElementHTML<T extends Element>(element:T, html:Datex.RefOrValue<string|Element>):T {
+        // unobserve?
+        this.element_bound_html_values.get(element)?.unobserve(element);
+        this.element_bound_text_values.get(element)?.unobserve(element);
+
+        // none
+        if (html == undefined) element.innerHTML = '';
+
+        // DatexValue
+        if (html instanceof Datex.Ref) {
+            this.updateElementHTML.call(element, html.val);
+
+            // @ts-ignore: TODO: fix?
+            html.observe(this.updateElementHTML, element);
+            this.element_bound_html_values.set(element, html);
+        }
+        // default
+        else this.updateElementHTML.call(element, html);
+
+        return element;
+    }
+
+    setElementText<T extends HTMLElement>(element:T, text:Datex.RefOrValue<unknown>, markdown = false):T{
+        // unobserve?
+        this.element_bound_html_values.get(element)?.unobserve(element);
+        this.element_bound_text_values.get(element)?.unobserve(element);
+        
+        // @ts-ignore markdown flag
+        element._use_markdown = markdown;
+
+        // none
+        if (text == undefined) element.innerText = '';
+
+        // DatexValue
+        else if (text instanceof Datex.Value) {
+            this.updateElementText.call(element, text.val);
+
+            text.observe(this.updateElementText, element);
+            this.element_bound_text_values.set(element, text);
+        }
+        // default
+        else this.updateElementText.call(element, text);
+
+        return element;
+    }
+
 
 	createElement(tagName:string): SVGElement|MathMLElement|HTMLElement {
 		if (svgTags.has(tagName as any)) return this.document.createElementNS(this.svgNS, tagName as any) as SVGElement;
@@ -193,21 +301,25 @@ export class DOMUtils {
             // :out attributes
             if (isInputElement && (attr == "value:out" || attr == "value")) {
 
-                if (type.matchesType(Datex.Type.std.text)) element.addEventListener('change', () => value.val = element.value)
-                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener('change', () => value.val = Number(element.value))
-                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener('change', () => value.val = BigInt(element.value))
-                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener('change', () => value.val = Boolean(element.value))
+                if (type.matchesType(Datex.Type.std.text)) element.addEventListener('input', () => value.val = element.value)
+                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener('input', () => value.val = Number(element.value))
+                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener('input', () => value.val = BigInt(element.value))
+                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener('input', () => value.val = Boolean(element.value))
                 else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <input> element");
 
                 // TODO: allow duplex updates for "value"
-                if (attr == "value") this.setAttribute(element, attr, value.val, rootPath)
+                if (attr == "value") {
+                    const valid = this.setAttribute(element, attr, value.val, rootPath)
+                    if (valid) value.observe(v => this.setAttribute(element, attr, v, rootPath));
+                    return valid;
+                }
 
                 return true;
             }
 
             // checked attribute
             if (isInputElement && element.getAttribute("type") === "checkbox" && attr == "checked") {
-                if (!(element instanceof HTMLInputElement)) throw new Error("the 'checked' attribute is only supported for <input> elements");
+                if (!(element instanceof this.context.HTMLInputElement)) throw new Error("the 'checked' attribute is only supported for <input> elements");
 
                 if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener('change', () => value.val = element.checked)
                 else throw new Error("The type "+type+" is not supported for the 'checked' attribute of the <input> element");
@@ -269,9 +381,9 @@ export class DOMUtils {
                 if (typeof handler == "function") {
                     const eventName = <keyof HTMLElementEventMap>attr.replace("on","").toLowerCase();
                     element.addEventListener(eventName, <any>handler);
-                    // save in [EVENT_LISTENERS]
-                    if (!(<elWithEventListeners>element)[EVENT_LISTENERS]) (<elWithEventListeners>element)[EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, Set<Function>>().setAutoDefault(Set);
-                    (<elWithEventListeners>element)[EVENT_LISTENERS].getAuto(eventName).add(handler);
+                    // save in [DOMUtils.EVENT_LISTENERS]
+                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, Set<Function>>().setAutoDefault(Set);
+                    (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].getAuto(eventName).add(handler);
                 }
                 else throw new Error("Cannot set event listener for element attribute '"+attr+"'")
             }
@@ -284,9 +396,9 @@ export class DOMUtils {
                 if (typeof handler == "function") {
                     const eventName = "submit";
                     element.addEventListener(eventName, <any>handler);
-                    // save in [EVENT_LISTENERS]
-                    if (!(<elWithEventListeners>element)[EVENT_LISTENERS]) (<elWithEventListeners>element)[EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, Set<Function>>().setAutoDefault(Set);
-                    (<elWithEventListeners>element)[EVENT_LISTENERS].getAuto(eventName).add(handler);
+                    // save in [DOMUtils.EVENT_LISTENERS]
+                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, Set<Function>>().setAutoDefault(Set);
+                    (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].getAuto(eventName).add(handler);
                 }
                 // default "action" (path)
                 else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
@@ -294,6 +406,11 @@ export class DOMUtils {
             
         }
 
+        // value attribute
+        else if (attr == "value") {
+            (element as HTMLInputElement).value = this.formatAttributeValue(val,root_path)
+        }
+        
         // normal attribute
         else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
 
@@ -446,7 +563,7 @@ export class DOMUtils {
     appendElementOrShadowRoot(anchor: Element|DocumentFragment, element: Element|DocumentFragment|Text, appendAll = true, insertAfterAnchor = false, onAppend?: ((list: (Node)[]) => void)) {
         const appendedContent: Node[] = [];
         for (const candidate of (element instanceof this.context.DocumentFragment ? [...(element.childNodes as any)] : [element]) as unknown as Node[]) {
-            if (anchor instanceof this.context.Element && candidate instanceof this.context.HTMLTemplateElement && candidate.hasAttribute("shadowrootmode")) {
+            if (anchor instanceof this.context.HTMLElement && candidate instanceof this.context.HTMLTemplateElement && candidate.hasAttribute("shadowrootmode")) {
                 if (anchor.shadowRoot) throw new Error("element <"+anchor.tagName.toLowerCase()+"> already has a shadow root")
                 const shadowRoot = anchor.attachShadow({mode: (candidate.getAttribute("shadowrootmode")??"open") as "open"|"closed"});
                 shadowRoot.append((candidate as HTMLTemplateElement).content);

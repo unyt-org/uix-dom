@@ -21,7 +21,10 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 	function bindObserver(element:Element) {
 		const pointer = Datex.Pointer.getByValue(element);
 		if (!pointer) throw new Error("cannot bind observers for HTMLElement without pointer")
-		if (!element.dataset) throw new Error("element has nodaset, todo");
+		if (!element.dataset) {
+			console.log(element)
+			throw new Error("element has no dataset, todo");
+		}
 		if (!element.dataset['ptr']) element.dataset['ptr'] = pointer.id;
 
 		// @ts-ignore
@@ -286,4 +289,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 	}))
 
 
+	return {
+		bindObserver
+	}
 }

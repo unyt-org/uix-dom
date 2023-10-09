@@ -195,7 +195,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 			return el;
 		},
 
-		serialize(val: Element&{[domUtils.EVENT_LISTENERS]?:Map<keyof HTMLElementEventMap, Set<Function>>}) {
+		serialize(val: Element&{[DOMUtils.EVENT_LISTENERS]?:Map<keyof HTMLElementEventMap, Set<Function>>}) {
 			if (!(val instanceof this.class!)) throw "not an " + this.class!.name;
 			const data: {style:Record<string,string>, content:any[], attr:Record<string,unknown>, shadowroot?:DocumentFragment} = {style: {}, attr: {}, content: []}
 
@@ -204,14 +204,17 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 				const attrib = val.attributes[i];
 				if (attrib.name !== "style" && attrib.name !== "data-ptr") data.attr[attrib.name] = attrib.value;
 			}
+
 			// event handler attributes
-			for (const [name, handlers] of val[domUtils.EVENT_LISTENERS]??[]) {
+			for (const [name, handlers] of val[DOMUtils.EVENT_LISTENERS]??[]) {
 				const allowedHandlers = [];
 				for (const handler of handlers) {
-					if (handler[STANDALONE]) logger.error("@standalone and UIX.inDisplayContext functions are currently not supported with UIX.renderDynamic/UIX.renderWithHydration ("+(handler.name??'anonymous function')+")")
-					else allowedHandlers.push($$(handler))
+					// TODO
+					// if (handler[STANDALONE]) logger.error("@standalone and UIX.inDisplayContext functions are currently not supported with UIX.renderDynamic/UIX.renderWithHydration ("+(handler.name??'anonymous function')+")")
+					// else
+					allowedHandlers.push($$(handler))
 				}
-				data.attr['on'+name] = allowedHandlers;
+				data.attr['on'+String(name)] = allowedHandlers;
 			}
 
 			// style (uix _original_style)

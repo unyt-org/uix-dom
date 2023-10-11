@@ -17,9 +17,17 @@ type htmlPixels = integerString|number|bigint
 type htmlColor = ""
 
 // list of all event handler content attributes
-export const elementEventHandlerAttributes = [
+
+const elementEventHandlerAttributesBase = [
 	"onabort", "onblur", "oncanplay", "oncanplaythrough", "onchange", "onclick", "oncontextmenu", "oncuechange", "ondblclick", "ondrag", "ondragend", "ondragenter", "ondragleave", "ondragover", "ondragstart", "ondrop", "ondurationchange", "onemptied", "onended", "onerror", "onfocus", "oninput", "oninvalid", "onkeydown", "onkeypress", "onkeyup", "onload", "onloadeddata", "onloadedmetadata", "onloadstart", "onmousedown", "onmousemove", "onmouseout", "onmouseover", "onmouseup", "onmousewheel", "onpause", "onplay", "onplaying", "onprogress", "onratechange", "onreadystatechange", "onreset", "onscroll", "onseeked", "onseeking", "onselect", "onshow", "onstalled", "onsubmit", "onsuspend", "ontimeupdate", "onvolumechange", "onwaiting"
 ] as const;
+
+export const elementEventHandlerAttributes = [
+	...elementEventHandlerAttributesBase,
+	...elementEventHandlerAttributesBase.map(v => `${v}:display`)
+]
+
+export type elementEventHandlerAttribute = typeof elementEventHandlerAttributesBase[number]|`${typeof elementEventHandlerAttributesBase[number]}:display`
 
 // list of all default element attributes
 export const defaultElementAttributes = [
@@ -40,8 +48,9 @@ type customDefaultAttributeValues = {
 export type validHTMLElementAttrs = {
 	[key in typeof defaultElementAttributes[number]]: (key extends keyof customDefaultAttributeValues ? customDefaultAttributeValues[key] : string)
 } & {
-	[key in typeof elementEventHandlerAttributes[number]]: key extends keyof GlobalEventHandlers ? GlobalEventHandlers[key] : never
-}
+	[key in elementEventHandlerAttribute]: Function
+} //key extends keyof GlobalEventHandlers ? GlobalEventHandlers[key] : never
+
 
 export type validHTMLElementSpecificAttrs<TAG extends string> = TAG extends keyof typeof htmlElementAttributes ? {
 	[key in (typeof htmlElementAttributes)[TAG][number]]: TAG extends keyof htmlElementAttributeValues ? (key extends keyof htmlElementAttributeValues[TAG] ? htmlElementAttributeValues[TAG][key] : string) : string
@@ -80,6 +89,8 @@ type href = {
 const alt = "alt" as const;
 
 
+type MediaStream = any; // TODO:
+
 /** list of all allowed attributes for HTML elements */
 export const htmlElementAttributes = {
 
@@ -111,7 +122,9 @@ export const htmlElementAttributes = {
 export type htmlElementAttributeValues = {
 	a: href,
 
-	link: href,
+	link: href & {
+		rel: string
+	},
 
 	input: widthAndHeight & src & {
 		autocomplete: "on"|"off"

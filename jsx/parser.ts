@@ -16,7 +16,7 @@ export function escapeString(string:string) {
 	return {[JSX_INSERT_STRING]:true, val:string};
 }
 
-export function getParseJSX(context: DOMContext, domUtils?: DOMUtils) {
+export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 
 	return function parseJSX(type: string | typeof Element | typeof DocumentFragment | ((...args:unknown[])=>Element|DocumentFragment), params: Record<string,unknown>): Element {
 
@@ -89,7 +89,7 @@ export function getParseJSX(context: DOMContext, domUtils?: DOMUtils) {
 				if (attr == "style" && (element as HTMLElement).style) domUtils.setCSS(element as HTMLElement, <any> val);
 				else {
 					const valid_attr = domUtils.setElementAttribute(element, attr, <any>val, module);
-					if (!allow_invalid_attributes && !valid_attr) logger.warn(`Element attribute "${attr}" is not allowed for <${element.tagName.toLowerCase()}>`)
+					if (!allow_invalid_attributes && !valid_attr) logger.warn(`Attribute "${attr}" is not allowed for <${element.tagName.toLowerCase()}> element`)
 				}
 			}
 		}

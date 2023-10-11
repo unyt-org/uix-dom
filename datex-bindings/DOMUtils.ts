@@ -5,6 +5,7 @@ import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement,
 import { IterableHandler } from "datex-core-js-legacy/utils/iterable-handler.ts";
 import { DX_VALUE } from "datex-core-js-legacy/datex_all.ts";
 import { DOMContext } from "../dom/DOMContext.ts";
+import { JSTransferableFunction } from "unyt_core/types/js-function.ts";
 
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
@@ -285,6 +286,20 @@ export class DOMUtils {
 
 
 	setElementAttribute<T extends Element>(element:T, attr:string, value:Datex.RefOrValue<unknown>|((...args:unknown[])=>unknown)|{[JSX_INSERT_STRING]:true, val:string}, rootPath?:string|URL):boolean|Promise<boolean> {
+        
+        // valid attribute name?
+        // not an HTML attribute
+        if (!(
+            attr.startsWith("data-") ||
+            attr.startsWith("aria-") ||
+            defaultElementAttributes.includes(<typeof defaultElementAttributes[number]>attr) || 
+            elementEventHandlerAttributes.includes(<typeof elementEventHandlerAttributes[number]>attr) ||
+            (<readonly string[]>htmlElementAttributes[<keyof typeof htmlElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof htmlElementAttributes[keyof typeof htmlElementAttributes][number]>attr) ||
+            (<readonly string[]>svgElementAttributes[<keyof typeof svgElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof svgElementAttributes[keyof typeof svgElementAttributes][number]>attr) )) {
+                return false;
+        }
+
+        
         value = value?.[JSX_INSERT_STRING] ? value.val : value; // collapse safely injected strings
 
         // first await, if value is promise
@@ -335,7 +350,9 @@ export class DOMUtils {
         else return this.setAttribute(element, attr, value, rootPath)
     }
 
-	setAttribute(element: Element, attr:string, val:unknown, root_path?:string|URL) {
+	private setAttribute(element: Element, attr:string, val:unknown, root_path?:string|URL): boolean {
+
+        // special suffixes:
 
         // non-module-relative paths if :route suffix
         if (attr.endsWith(":route")) {
@@ -343,28 +360,26 @@ export class DOMUtils {
             root_path = undefined;
         }
 
-        // not an HTML attribute
-        if (!(
-            attr.startsWith("data-") ||
-            attr.startsWith("aria-") ||
-            defaultElementAttributes.includes(<typeof defaultElementAttributes[number]>attr) || 
-            elementEventHandlerAttributes.includes(<typeof elementEventHandlerAttributes[number]>attr) ||
-            (<readonly string[]>htmlElementAttributes[<keyof typeof htmlElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof htmlElementAttributes[keyof typeof htmlElementAttributes][number]>attr) ||
-            (<readonly string[]>svgElementAttributes[<keyof typeof svgElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof svgElementAttributes[keyof typeof svgElementAttributes][number]>attr) )) {
-                // TODO: remove deprecated module
-                if (attr!="module")
-                    return false;
-                // try {
-                // 	element[property] = Datex.Value.collapseValue(val, true, true);
-                // }
-                // catch(e) {
-                // 	// console.log(e,element,property)
-                // 	console.error("could not set attribute '" + property + "' for " + element.constructor.name);
-                // }
+        // display context event handler function
+        if (attr.endsWith(":display")) {
+            if (typeof val !== "function") throw new Error(`Invalid value for attribute "${attr}" - must be a function`)
+            if (val instanceof JSTransferableFunction) {
+                // don't change, already a JSTransferableFunction
+            }
+            else if (JSTransferableFunction.functionIsAsync(val as (...args: unknown[]) => unknown)) {
+                // async! (always returns true, doesn't await promise)
+                JSTransferableFunction.createAsync(val as (...args: unknown[]) => Promise<unknown>).then(fn => this.setAttribute(element, attr, fn, root_path)); 
+                return true;
+            }
+            else {
+                val = JSTransferableFunction.create(val as (...args: unknown[]) => unknown)
+            }
+            attr = attr.replace(":display", "");
+
         }
 
         // invalid :out attributes here
-        else if (attr.endsWith(":out")) throw new Error("Invalid value for "+attr+" attribute - must be a pointer");
+        if (attr.endsWith(":out")) throw new Error("Invalid value for "+attr+" attribute - must be a pointer");
 
         // special attribute values
         else if (val === false) element.removeAttribute(attr);

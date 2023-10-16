@@ -4,8 +4,8 @@
  * https://www.w3schools.com/tags/
  */
 
-import type { Datex } from "datex-core-js-legacy/datex.ts";
-import type { primitive } from "datex-core-js-legacy/types/abstract_types.ts"
+import type { Datex } from "datex-core-legacy/datex.ts";
+import type { primitive } from "datex-core-legacy/types/abstract_types.ts"
 import type { HTMLElementTagNameMap, SVGElementTagNameMap } from "./dom/deno-dom/src/dom/types/tags.ts";
 
 // general html specific types

@@ -1,4 +1,4 @@
-import type { Datex } from "datex-core-js-legacy/datex.ts";
+import type { Datex } from "datex-core-legacy/datex.ts";
 import type { validHTMLElementAttrs, validHTMLElementSpecificAttrs, validSVGElementSpecificAttrs } from "../attributes.ts";
 import type { Element, DocumentFragment } from "../dom/mod.ts";
 import { HTMLElementTagNameMap, SVGElementTagNameMap } from "../dom/deno-dom/src/dom/types/tags.ts";

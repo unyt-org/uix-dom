@@ -1,9 +1,11 @@
-import { $$, Datex } from "datex-core-js-legacy";
+import { $$, Datex } from "datex-core-legacy";
 import { DOMUtils } from "./DOMUtils.ts"
-import { DX_VALUE, INIT_PROPS, logger } from "datex-core-js-legacy/datex_all.ts";
-import { DX_IGNORE } from "datex-core-js-legacy/runtime/constants.ts";
+import { DX_VALUE, INIT_PROPS, logger } from "datex-core-legacy/datex_all.ts";
+import { DX_IGNORE } from "datex-core-legacy/runtime/constants.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import type { Element, DocumentFragment, MutationObserver, Document } from "../dom/mod.ts"
+import type { Element, DocumentFragment, MutationObserver, Document, HTMLElement, Node } from "../dom/mod.ts"
+import { querySelector } from "../dom/shadow_dom_selector.ts";
+import { client_type } from "datex-core-legacy/utils/constants.ts";
 
 let definitionsLoaded = false;
 
@@ -25,7 +27,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 			console.log(element)
 			throw new Error("element has no dataset, todo");
 		}
-		if (!element.dataset['ptr']) element.dataset['ptr'] = pointer.id;
+		if (!element.hasAttribute("uix-ptr")) element.setAttribute("uix-ptr", pointer.id);
 
 		// @ts-ignore
 		if (element[OBSERVER]) return;
@@ -50,7 +52,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 
 			for (const mut of mutations) {
 				if (mut.type == "attributes") {
-					if (mut.attributeName == "data-ptr") continue;
+					if (mut.attributeName == "uix-ptr") continue;
 					// TODO find style changes, don't send full style attribute
 					ptr.handleSetObservers(mut.attributeName)
 				}
@@ -82,7 +84,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 		},
 
 		// called when replicating from state
-		cast_no_tuple(val, type, ctx) {
+		cast_no_tuple(val) {
 			const fragment = new context.DocumentFragment();
 			for (const child of val) {
 				domUtils.append(fragment, child);
@@ -104,7 +106,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 		},
 
 		// called when replicating from state
-		cast_no_tuple(val, type, ctx) {
+		cast_no_tuple(val) {
 			const document = new context.Document();
 			for (const child of val) {
 				document.appendChild(child);
@@ -128,6 +130,16 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 		return children;
 	}
 
+	function getExistingElement(ptrId?: string) {
+		if (!ptrId) return;
+		if (client_type == "browser") {
+			const existingElement = querySelector(`[uix-ptr="${ptrId}"]`) as Element;
+			existingElement?.removeAttribute("uix-static");
+			existingElement?.setAttribute("uix-hydrated", "");
+			return existingElement;
+		}
+	}
+
 	// handles html/x and also casts from uix/x
 
 	const elementInterface:Datex.js_interface_configuration & {_name:string} = {
@@ -139,17 +151,22 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 		},
 
 		// called when replicating from state
-		cast_no_tuple(val, type, ctx) {
+		cast_no_tuple(val, type, _ctx, _origin, assigningPtrId) {
 
-			const is_uix = type.name == "uix";
-			if (!is_uix && !type.variation) throw new Error("cannot create "+this.class!.name+" without concrete type")
+			// merge with existing element in DOM
+			const existingElement = getExistingElement(assigningPtrId)
+
+			const isComponent = type.name == "uix";
+			if (!isComponent && !type.variation) throw new Error("cannot create "+this.class!.name+" without concrete type")
 			
-			const propertyInitializer = is_uix ? type.getPropertyInitializer(val.p) : null;
+			const propertyInitializer = isComponent ? type.getPropertyInitializer(val.p) : null;
 
 			// create HTMLElement / UIX component
-			const el = is_uix ?
+			const el = existingElement ?? (
+				isComponent ?
 				type.newJSInstance(false, undefined, propertyInitializer!) :  // call js constructor, but don't handle as constructor in lifecycle 
-				domUtils.createElement(type.variation); // create normal Element, no UIX lifecycle
+				domUtils.createElement(type.variation) // create normal Element, no UIX lifecycle
+			);
 
 			// set attrs, style, content from object
 			if (typeof val == "object" && Object.getPrototypeOf(val) === Object.prototype) {
@@ -165,9 +182,32 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 						}
 					}
 					else if (prop=="content") {
-						for (const child of (value instanceof Array ? value : [value])) {
-							if (child instanceof this.class!) domUtils.append(el, <Element>child);
-							else domUtils.append(el, child);
+						// only update new content
+						if (existingElement) {
+							const currentChildNodes = [...existingElement.childNodes as Iterable<Node>];
+							let i = 0;
+							for (const child of (value instanceof Array ? value : [value])) {
+								let currentChild:any = currentChildNodes[i];
+								if (currentChild instanceof context.Text) currentChild = currentChild.textContent;
+								
+								// child does no exist, just append
+								if (currentChildNodes[i] === undefined) {
+									// console.log("append",child)
+									domUtils.append(el, child);
+								}
+								// different child, replace
+								else if (child !== currentChild) {
+									// console.log("replace",currentChildNodes[i], child)
+									currentChildNodes[i].replaceWith(child);
+								}
+								i++;
+							}
+						}
+						// append content
+						else {
+							for (const child of (value instanceof Array ? value : [value])) {
+								domUtils.append(el, child);
+							}
 						}
 					}
 					else if (prop=="shadowroot") {
@@ -179,13 +219,12 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 
 			// set direct content when cast from different value
 			else {
-				if (val instanceof this.class!) domUtils.append(el, val as Element);
-				else domUtils.append(el, val);
+				domUtils.append(el, val);
 			}
 
 			
-			// uix
-			if (is_uix) {
+			// uix component
+			if (isComponent) {
 				// set 'p' properties (contains options, other properties)
 				propertyInitializer![INIT_PROPS](el);
 				// trigger UIX lifecycle (onReplicate)
@@ -202,7 +241,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 			// attributes
 			for (let i = 0; i < val.attributes.length; i++) {
 				const attrib = val.attributes[i];
-				if (attrib.name !== "style" && attrib.name !== "data-ptr") data.attr[attrib.name] = attrib.value;
+				if (attrib.name !== "style" && attrib.name !== "uix-ptr") data.attr[attrib.name] = attrib.value;
 			}
 
 			// event handler attributes

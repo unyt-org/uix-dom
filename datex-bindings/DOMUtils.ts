@@ -1,11 +1,11 @@
-import { Datex } from "datex-core-js-legacy"
+import { Datex } from "datex-core-legacy"
 import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../attributes.ts";
 import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment, Document, HTMLInputElement } from "../dom/mod.ts";
 
-import { IterableHandler } from "datex-core-js-legacy/utils/iterable-handler.ts";
-import { DX_VALUE } from "datex-core-js-legacy/datex_all.ts";
+import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
+import { DX_VALUE } from "datex-core-legacy/datex_all.ts";
 import { DOMContext } from "../dom/DOMContext.ts";
-import { JSTransferableFunction } from "unyt_core/types/js-function.ts";
+import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
@@ -21,7 +21,7 @@ export namespace DOMUtils {
 
 export class DOMUtils {
 
-    static readonly EVENT_LISTENERS: unique symbol = Symbol("DOMUtils.EVENT_LISTENERS");
+    static readonly EVENT_LISTENERS: unique symbol = Symbol.for("DOMUtils.EVENT_LISTENERS");
 
     readonly svgNS = "http://www.w3.org/2000/svg"
 	readonly mathMLNS = "http://www.w3.org/1998/Math/MathML"
@@ -394,10 +394,14 @@ export class DOMUtils {
         else if (attr.startsWith("on")) {
             for (const handler of ((val instanceof Array || val instanceof Set) ? val : [val])) {
                 if (typeof handler == "function") {
-                    const eventName = <keyof HTMLElementEventMap>attr.replace("on","").toLowerCase();
-                    element.addEventListener(eventName, <any>handler);
+                    const eventName = <keyof HTMLElementEventMap & string>attr.replace("on","").toLowerCase();
+                    element.addEventListener(eventName, handler as any);
                     // save in [DOMUtils.EVENT_LISTENERS]
                     if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, Set<Function>>().setAutoDefault(Set);
+                    // clear previous event listeners for this event (todo: allow multiple)
+                    for (const listener of (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].get(eventName) ?? []) {
+                        element.removeEventListener(eventName, listener as any);
+                    }
                     (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].getAuto(eventName).add(handler);
                 }
                 else throw new Error("Cannot set event listener for element attribute '"+attr+"'")

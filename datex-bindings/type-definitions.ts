@@ -6,6 +6,7 @@ import type { DOMContext } from "../dom/DOMContext.ts";
 import type { Element, DocumentFragment, MutationObserver, Document, HTMLElement, Node } from "../dom/mod.ts"
 import { querySelector } from "../dom/shadow_dom_selector.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
+// import { blobToBase64 } from "./blob-to-base64.ts";
 
 let definitionsLoaded = false;
 
@@ -14,7 +15,11 @@ const OBSERVER_EXCLUDE_UPDATES = Symbol("OBSERVER_EXCLUDE_UPDATES");
 const OBSERVER_IGNORE = Symbol("OBSERVER_IGNORE");
 
 
-export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
+export type BindingOptions = {
+	mapFileURL?: (url: `file://${string}`) => string
+}
+
+export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options?: BindingOptions) {
 
 	// definitions cannot be loaded multiple times
 	if (definitionsLoaded) throw new Error("DATEX type binding very already loaded for a window object")
@@ -241,7 +246,17 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils) {
 			// attributes
 			for (let i = 0; i < val.attributes.length; i++) {
 				const attrib = val.attributes[i];
-				if (attrib.name !== "style" && attrib.name !== "uix-ptr") data.attr[attrib.name] = attrib.value;
+				const value = attrib.value;
+				// relative web path (@...)
+				if (options?.mapFileURL && value.startsWith("file://")) data.attr[attrib.name] = options.mapFileURL(value as `file://${string}`);
+				// default attr, ignore style + uix-ptr
+				else if (attrib.name !== "style" && attrib.name !== "uix-ptr") data.attr[attrib.name] = value;
+				
+				// blob -> data url TODO: handle (async blob to base64)
+				if (value.startsWith("blob:")) {
+					logger.warn("todo: blob url attribute serialization")
+					// val = await blobToBase64(val);
+				}
 			}
 
 			// event handler attributes

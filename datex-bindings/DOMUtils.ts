@@ -6,6 +6,7 @@ import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
 import { DX_VALUE } from "datex-core-legacy/datex_all.ts";
 import { DOMContext } from "../dom/DOMContext.ts";
 import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
+import { client_type } from "datex-core-legacy/utils/constants.ts";
 
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
@@ -363,8 +364,8 @@ export class DOMUtils {
         // display context event handler function
         if (attr.endsWith(":display")) {
             if (typeof val !== "function") throw new Error(`Invalid value for attribute "${attr}" - must be a function`)
-            if (val instanceof JSTransferableFunction) {
-                // don't change, already a JSTransferableFunction
+            if (client_type == "browser" && val instanceof JSTransferableFunction) {
+                // don't change, already a JSTransferableFunction or in display context
             }
             else if (JSTransferableFunction.functionIsAsync(val as (...args: unknown[]) => unknown)) {
                 // async! (always returns true, doesn't await promise)
@@ -428,6 +429,10 @@ export class DOMUtils {
         // value attribute
         else if (attr == "value") {
             (element as HTMLInputElement).value = this.formatAttributeValue(val,root_path)
+        }
+        // checked attribute
+        else if (attr == "checked") {
+            (element as HTMLInputElement).checked = this.formatAttributeValue(val,root_path)
         }
         
         // normal attribute

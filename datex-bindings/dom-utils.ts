@@ -364,7 +364,7 @@ export class DOMUtils {
         // display context event handler function
         if (attr.endsWith(":frontend")) {
             if (typeof val !== "function") throw new Error(`Invalid value for attribute "${attr}" - must be a function`)
-            if (client_type == "browser" && val instanceof JSTransferableFunction) {
+            if (client_type == "browser" || val instanceof JSTransferableFunction) {
                 // don't change, already a JSTransferableFunction or in frontend context
             }
             else if (JSTransferableFunction.functionIsAsync(val as (...args: unknown[]) => unknown)) {

@@ -1,6 +1,6 @@
 import type { HTMLElement, Element, DocumentFragment } from "../dom/mod.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import { JSX_INSERT_STRING, type DOMUtils } from "../datex-bindings/DOMUtils.ts";
+import { JSX_INSERT_STRING, type DOMUtils } from "../datex-bindings/dom-utils.ts";
 
 import { Logger } from "datex-core-legacy/datex_all.ts";
 import { getCallerFile } from "datex-core-legacy/utils/caller_metadata.ts";

@@ -1,7 +1,7 @@
 import { Datex } from "datex-core-legacy/datex.ts";
 import { escapeString, getParseJSX } from "../jsx/parser.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import type { DOMUtils } from "../datex-bindings/DOMUtils.ts";
+import type { DOMUtils } from "../datex-bindings/dom-utils.ts";
 
 const injectionMarker = '\x00';
 const tagStart = /^<([\w\-.:]*|\x00\[\d+\])\s*( |\/|>)/;

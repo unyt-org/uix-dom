@@ -1,5 +1,5 @@
 import { $$, Datex } from "datex-core-legacy";
-import { DOMUtils } from "./DOMUtils.ts"
+import { DOMUtils } from "./dom-utils.ts"
 import { DX_VALUE, INIT_PROPS, logger } from "datex-core-legacy/datex_all.ts";
 import { DX_IGNORE } from "datex-core-legacy/runtime/constants.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";

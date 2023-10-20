@@ -45,10 +45,10 @@ type customDefaultAttributeValues = {
 	"datex-pointer": boolean
 }
 
-export type validHTMLElementAttrs = {
+export type validHTMLElementAttrs<El extends HTMLElement> = {
 	[key in typeof defaultElementAttributes[number]]: (key extends keyof customDefaultAttributeValues ? customDefaultAttributeValues[key] : string)
 } & {
-	[key in elementEventHandlerAttribute]: Function
+	[key in elementEventHandlerAttribute]: (this: El, event: Event) => void
 } //key extends keyof GlobalEventHandlers ? GlobalEventHandlers[key] : never
 
 

@@ -18,7 +18,7 @@ export function escapeString(string:string) {
 
 export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 
-	return function parseJSX(type: string | typeof Element | typeof DocumentFragment | ((...args:unknown[])=>Element|DocumentFragment), params: Record<string,unknown>): Element {
+	return function parseJSX(type: string | typeof Element | typeof DocumentFragment | ((...args:unknown[])=>Element|DocumentFragment), params: Record<string,unknown>, isJSXS = false): Element {
 
 		let element:Element;
 		if ('children' in params && !(params.children instanceof Array)) params.children = [params.children];
@@ -76,6 +76,10 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 			
 			element = domUtils ? domUtils.createElement(type) : context.document.createElement(type)
 		}
+
+		// if (!(element instanceof context.Element || element instanceof context.DocumentFragment)) {
+		// 	throw new Error("Invalid JSX element, must be of type Element")
+		// }
 	
 		if (set_default_attributes) {
 			let module = ((<Record<string,unknown>>props)['module'] ?? (<Record<string,unknown>>props)['uix-module']) as string|undefined;

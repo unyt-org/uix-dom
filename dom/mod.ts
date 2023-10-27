@@ -10,6 +10,8 @@ export * from "./deno-dom/src/dom/elements/shadow-root.ts";
 
 // create new document
 export const document = new denoDom.Document();
+// default document required for querySelector to work
+denoDom.Node.setDefaultDocument(document);
 
 // create new element registry
 const elements = new CustomElementRegistry<HTMLTag>();

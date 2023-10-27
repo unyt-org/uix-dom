@@ -3,7 +3,7 @@ import { DOMUtils } from "./dom-utils.ts"
 import { DX_VALUE, INIT_PROPS, logger } from "datex-core-legacy/datex_all.ts";
 import { DX_IGNORE } from "datex-core-legacy/runtime/constants.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import type { Element, DocumentFragment, MutationObserver, Document, HTMLElement, Node } from "../dom/mod.ts"
+import type { Element, DocumentFragment, MutationObserver, Document, HTMLElement, Node, Comment } from "../dom/mod.ts"
 import { querySelector } from "../dom/shadow_dom_selector.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
 // import { blobToBase64 } from "./blob-to-base64.ts";
@@ -24,6 +24,22 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 	// definitions cannot be loaded multiple times
 	if (definitionsLoaded) throw new Error("DATEX type binding very already loaded for a window object")
 	definitionsLoaded = true;
+
+	const htmlType = Datex.Type.get("html");
+	const svgType = Datex.Type.get("svg");
+	const mathmlType = Datex.Type.get("mathml");
+	const documentType = Datex.Type.get("htmldocument");
+	const fragmentType = Datex.Type.get("htmlfragment");
+	const commentType = Datex.Type.get("htmlcomment");
+
+	const allDomTypes = new Set([
+		htmlType,
+		svgType,
+		mathmlType,
+		documentType,
+		fragmentType,
+		commentType
+	])
 
 	function bindObserver(element:Element) {
 		const pointer = Datex.Pointer.getByValue(element);
@@ -78,11 +94,30 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 		return element;
 	}
 
+	const transformWrapper = {
+		// special transform-fragment wrapper for transforms
+		wrap_transform(val) {
+			const fragment = document.createElement("transform-fragment");
+			domUtils.append(fragment, val);
+			return fragment;
+		},
+
+		allow_transform_value(type) {
+			return allDomTypes.has(type.root_type) || "must be a DOM element"
+		},
+
+		handle_transform(val, ptr) {
+			ptr.val.innerHTML = "";
+			domUtils.append(ptr.val, val)
+		}
+	}
 
 
 	// handle htmlfragment (DocumentFragment)
-	Datex.Type.get('htmlfragment').setJSInterface({
+	fragmentType.setJSInterface({
 		class: context.DocumentFragment,
+
+		...transformWrapper,
 
 		create_proxy(value, pointer) {
 			return value;
@@ -103,7 +138,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 	})
 
 	// handle htmlfragment (Document)
-	Datex.Type.get('htmldocument').setJSInterface({
+	documentType.setJSInterface({
 		class: context.Document,
 
 		create_proxy(value, pointer) {
@@ -121,6 +156,26 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 
 		serialize(val:Document) {
 			return serializeChildren(val)
+		}
+	})
+
+	// handle htmlfragment (Document)
+	commentType.setJSInterface({
+		class: context.Comment,
+
+		...transformWrapper,
+
+		create_proxy(value, pointer) {
+			return value;
+		},
+
+		// called when replicating from state
+		cast_no_tuple(val) {
+			return new context.Comment(val);;
+		},
+
+		serialize(val:Comment) {
+			return val.textContent;
 		}
 	})
 
@@ -147,6 +202,8 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 
 	// handles html/x and also casts from uix/x
 
+
+
 	const elementInterface:Datex.js_interface_configuration & {_name:string} = {
 		_name: "unset",
 
@@ -154,6 +211,9 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			if (val instanceof this.class!) return Datex.Type.get('std', this._name, val.tagName.toLowerCase());
 			else throw "not an " + this.class!.name;
 		},
+
+		// enable <transform-fragment> wrapping
+		...transformWrapper,
 
 		// called when replicating from state
 		cast_no_tuple(val, type, _ctx, _origin, assigningPtrId) {
@@ -239,7 +299,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			return el;
 		},
 
-		serialize(val: Element&{[DOMUtils.EVENT_LISTENERS]?:Map<keyof HTMLElementEventMap, Set<Function>>}) {
+		serialize(val: Element&{[DOMUtils.EVENT_LISTENERS]?:Map<keyof HTMLElementEventMap, Set<[Function, boolean]>>}) {
 			if (!(val instanceof this.class!)) throw "not an " + this.class!.name;
 			const data: {style:Record<string,string>, content:any[], attr:Record<string,unknown>, shadowroot?:DocumentFragment} = {style: {}, attr: {}, content: []}
 
@@ -262,7 +322,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			// event handler attributes
 			for (const [name, handlers] of val[DOMUtils.EVENT_LISTENERS]??[]) {
 				const allowedHandlers = [];
-				for (const handler of handlers) {
+				for (const [handler] of handlers) {
 					// TODO
 					// if (handler[STANDALONE]) logger.error("@standalone and UIX.inDisplayContext functions are currently not supported with UIX.renderDynamic/UIX.renderWithHydration ("+(handler.name??'anonymous function')+")")
 					// else
@@ -273,9 +333,9 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 
 			// style (uix _original_style)
 			// @ts-ignore 
-			const style = val._original_style??val.style;
+			const style = val.style;
 			
-			let style_props = style._importants ? [...Object.keys(style._importants)] : style;
+			let style_props = (style?._importants ? [...Object.keys(style._importants)] : style) ?? [];
 			if (style_props && !(style_props instanceof Array || (context.CSSStyleDeclaration && style_props instanceof context.CSSStyleDeclaration))) style_props = [...Object.keys(style_props)];
 
 
@@ -331,17 +391,18 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 
 	}
 
-	Datex.Type.get('html').setJSInterface(Object.assign(Object.create(elementInterface), {
+	htmlType.setJSInterface(Object.assign(Object.create(elementInterface), {
 		_name: 'html',
 		class: context.HTMLElement
 	}))
 
-	Datex.Type.get('svg').setJSInterface(Object.assign(Object.create(elementInterface), {
+	svgType.setJSInterface(Object.assign(Object.create(elementInterface), {
 		_name: 'svg',
 		class: context.SVGElement
 	}))
 
-	Datex.Type.get('mathml').setJSInterface(Object.assign(Object.create(elementInterface), {
+	mathmlType.setJSInterface(Object.assign(Object.create(elementInterface), {
+		_name: 'mathml',
 	    class: context.MathMLElement
 	}))
 

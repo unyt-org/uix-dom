@@ -16,13 +16,16 @@ type appendableContent = appendableContentBase|Promise<appendableContentBase>
 
 // deno-lint-ignore no-namespace
 export namespace DOMUtils {
-    export type elWithEventListeners = HTMLElement & {[DOMUtils.EVENT_LISTENERS]:Map<keyof HTMLElementEventMap, Set<(...args:any)=>any>>}
-
+    export type elWithEventListeners = Element & {
+        [DOMUtils.EVENT_LISTENERS]:Map<keyof HTMLElementEventMap, Set<[(...args:any)=>any, boolean]>>
+        [DOMUtils.ATTR_BINDINGS]:Map<string, Datex.Ref>
+    }
 }
 
 export class DOMUtils {
 
     static readonly EVENT_LISTENERS: unique symbol = Symbol.for("DOMUtils.EVENT_LISTENERS");
+    static readonly ATTR_BINDINGS: unique symbol = Symbol.for("DOMUtils.ATTR_BINDINGS");
 
     readonly svgNS = "http://www.w3.org/2000/svg"
 	readonly mathMLNS = "http://www.w3.org/1998/Math/MathML"
@@ -153,14 +156,14 @@ export class DOMUtils {
         if (children instanceof this.context.DocumentFragment && children._uix_children) children = children._uix_children
 
         // is ref and iterable/element
-        if (!(parent instanceof this.context.DocumentFragment) && Datex.Pointer.isReference(children) && (children instanceof Array || children instanceof Map || children instanceof Set)) {
+        if (!(parent instanceof this.context.DocumentFragment) && Datex.Ref.isRef(children) && (children instanceof Array || children instanceof Map || children instanceof Set)) {
             // is iterable ref
             // TODO: support promises
             const startAnchor = new this.context.Comment("start " + Datex.Pointer.getByValue(children)?.idString())
             const endAnchor = new this.context.Comment("end " + Datex.Pointer.getByValue(children)?.idString())
             parent.append(startAnchor, endAnchor)
 
-            const iterableHandler = new IterableHandler(children, {
+            new IterableHandler<appendableContent, Node>(children as appendableContent[], {
                 map: (v,k) => {
                     const el = this.valuesToDOMElement(v);
                     return el;
@@ -168,7 +171,7 @@ export class DOMUtils {
                 onEntryRemoved: (v,k) => {
                     if (parent.contains(v)) parent.removeChild(v);
                 },
-                onNewEntry: function(v,k) {
+                onNewEntry(v,k)  {
                     let previous:Node = startAnchor;
 
                     for (let prevIndex = k - 1; prevIndex >= 0; prevIndex--) {
@@ -183,6 +186,7 @@ export class DOMUtils {
                         }
                         
                     }
+
                     parent.insertBefore(v, previous.nextSibling)
                 },
                 onEmpty: () => {
@@ -312,16 +316,28 @@ export class DOMUtils {
         if (value instanceof Datex.Ref) {
 
             const isInputElement = element.tagName.toLowerCase() === "input";
+            const isSelectElement = element.tagName.toLowerCase() === "select";
+
             const type = Datex.Type.ofValue(value);
 
-            // :out attributes
-            if (isInputElement && (attr == "value:out" || attr == "value")) {
+            // bind value (used for datex-over-http updates)
+            if (attr == "value" || attr == "checked") {
+                if (!(<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_BINDINGS]) 
+                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_BINDINGS] = new Map<string, Datex.Ref>();
+                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_BINDINGS].set(attr, value)
+            }
+     
 
-                if (type.matchesType(Datex.Type.std.text)) element.addEventListener('input', () => value.val = element.value)
-                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener('input', () => value.val = Number(element.value))
-                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener('input', () => value.val = BigInt(element.value))
-                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener('input', () => value.val = Boolean(element.value))
-                else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <input> element");
+            // :out attributes
+            if ((isSelectElement || isInputElement) && (attr == "value:out" || attr == "value")) {
+
+                const event = isSelectElement ? 'change' : 'input';
+
+                if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => value.val = element.value)
+                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => value.val = Number(element.value))
+                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => value.val = BigInt(element.value))
+                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => value.val = Boolean(element.value))
+                else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
 
                 // TODO: allow duplex updates for "value"
                 if (attr == "value") {
@@ -398,12 +414,13 @@ export class DOMUtils {
                     const eventName = <keyof HTMLElementEventMap & string>attr.replace("on","").toLowerCase();
                     element.addEventListener(eventName, handler as any);
                     // save in [DOMUtils.EVENT_LISTENERS]
-                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, Set<Function>>().setAutoDefault(Set);
-                    // clear previous event listeners for this event (todo: allow multiple)
-                    for (const listener of (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].get(eventName) ?? []) {
-                        element.removeEventListener(eventName, listener as any);
+                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, [Set<Function>, boolean]>();
+                    // clear previous standalone listeners for this event
+                    for (const [listener, isStandalone] of (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].get(eventName) ?? []) {
+                        if (isStandalone) element.removeEventListener(eventName, listener as any);
                     }
-                    (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].getAuto(eventName).add(handler);
+                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].has(eventName)) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].set(eventName, new Set());
+                    (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].get(eventName)!.add([handler, false]);
                 }
                 else throw new Error("Cannot set event listener for element attribute '"+attr+"'")
             }
@@ -417,8 +434,9 @@ export class DOMUtils {
                     const eventName = "submit";
                     element.addEventListener(eventName, <any>handler);
                     // save in [DOMUtils.EVENT_LISTENERS]
-                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, Set<Function>>().setAutoDefault(Set);
-                    (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].getAuto(eventName).add(handler);
+                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, [Set<Function>, boolean]>();
+                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].has(eventName)) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].set(eventName, new Set());
+                    (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].get(eventName)!.add([handler, false]);
                 }
                 // default "action" (path)
                 else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
@@ -430,13 +448,18 @@ export class DOMUtils {
         else if (attr == "value") {
             (element as HTMLInputElement).value = this.formatAttributeValue(val,root_path)
         }
-        // checked attribute
-        else if (attr == "checked") {
-            (element as HTMLInputElement).checked = this.formatAttributeValue(val,root_path)
-        }
         
         // normal attribute
-        else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
+        else {
+            if (val === false) element.removeAttribute(attr);
+            else if (val === true) element.setAttribute(attr, "");
+            else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
+        }
+
+        // update checkbox checked property (bug?)
+        if (attr == "checked") {
+            element.checked = val;
+        }
 
         return true;
         
@@ -554,9 +577,9 @@ export class DOMUtils {
     }
 
 
-    valuesToDOMElement(...values:any[]) {
+    valuesToDOMElement(...values:any[]): Node|DocumentFragment {
         if (values.length == 1) {
-            if (values[0] instanceof this.context.Element || values[0] instanceof this.context.DocumentFragment) return values[0];
+            if (values[0] instanceof this.context.Element || values[0] instanceof this.context.DocumentFragment) return values[0] as Node;
             else return this.getTextNode(values[0]);
         }
         else {

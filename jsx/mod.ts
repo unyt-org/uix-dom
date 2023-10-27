@@ -11,7 +11,7 @@ export function enableJSX(context: DOMContext, domUtils: DOMUtils) {
 	const Fragment = getFragment(context, domUtils)
 	return {
 		jsx: jsx,
-		jsxs: jsx,
+		jsxs: (type: any, params: Record<string,unknown>) => jsx(type, params, true),
 		Fragment: Fragment
 	}
 }

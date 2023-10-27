@@ -114,7 +114,7 @@ export const htmlElementAttributes = {
 	video: [...src, ...widthAndHeight, "autoplay", "controls", "loop", "muted", "poster", "preload", "playsinline"],
 	textarea: ["placeholder"],
 	option: ["value", "selected"],
-	select: []
+	select: ["value"]
 } as const satisfies {[key in keyof HTMLElementTagNameMap]?: readonly string[]};
 
 

@@ -195,6 +195,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 		if (client_type == "browser") {
 			const existingElement = querySelector(`[uix-ptr="${ptrId}"]`) as Element;
 			existingElement?.removeAttribute("uix-static");
+			existingElement?.removeAttribute("uix-dry");
 			existingElement?.setAttribute("uix-hydrated", "");
 			return existingElement;
 		}
@@ -224,7 +225,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			const isComponent = type.name == "uix";
 			if (!isComponent && !type.variation) throw new Error("cannot create "+this.class!.name+" without concrete type")
 			
-			const propertyInitializer = isComponent ? type.getPropertyInitializer(val.p) : null;
+			const propertyInitializer = isComponent ? type.getPropertyInitializer(val?.p ?? {}) : null;
 
 			// create HTMLElement / UIX component
 			const el = existingElement ?? (
@@ -319,13 +320,15 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 				}
 			}
 
+			// special attr bindings (value, checked)
+			for (const [attr, ref] of (<DOMUtils.elWithEventListeners><unknown>val)[DOMUtils.ATTR_BINDINGS]??[]) {
+				data.attr[attr] = ref;
+			}
+
 			// event handler attributes
 			for (const [name, handlers] of val[DOMUtils.EVENT_LISTENERS]??[]) {
 				const allowedHandlers = [];
 				for (const [handler] of handlers) {
-					// TODO
-					// if (handler[STANDALONE]) logger.error("@standalone and UIX.inDisplayContext functions are currently not supported with UIX.renderDynamic/UIX.renderWithHydration ("+(handler.name??'anonymous function')+")")
-					// else
 					allowedHandlers.push($$(handler))
 				}
 				data.attr['on'+String(name)] = allowedHandlers;
@@ -338,8 +341,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			let style_props = (style?._importants ? [...Object.keys(style._importants)] : style) ?? [];
 			if (style_props && !(style_props instanceof Array || (context.CSSStyleDeclaration && style_props instanceof context.CSSStyleDeclaration))) style_props = [...Object.keys(style_props)];
 
-
-			if (style_props instanceof Array) {
+			if (style_props instanceof Array || style_props instanceof context.CSSStyleDeclaration) {
 				for (const prop of style_props) {
 					data.style[prop] = style[prop];
 				}

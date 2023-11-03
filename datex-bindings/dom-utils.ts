@@ -337,6 +337,7 @@ export class DOMUtils {
                 else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => value.val = Number(element.value))
                 else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => value.val = BigInt(element.value))
                 else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => value.val = Boolean(element.value))
+                else if (type.matchesType(Datex.Type.std.void)) {console.warn("setting value attribute to void", element)}
                 else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
 
                 // TODO: allow duplex updates for "value"
@@ -354,6 +355,7 @@ export class DOMUtils {
                 if (!(element instanceof this.context.HTMLInputElement)) throw new Error("the 'checked' attribute is only supported for <input> elements");
 
                 if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener('change', () => value.val = element.checked)
+                else if (type.matchesType(Datex.Type.std.void)) {console.warn("setting checked attribute to void", element)}
                 else throw new Error("The type "+type+" is not supported for the 'checked' attribute of the <input> element");
             }
 
@@ -397,6 +399,16 @@ export class DOMUtils {
 
         // invalid :out attributes here
         if (attr.endsWith(":out")) throw new Error("Invalid value for "+attr+" attribute - must be a pointer");
+
+        // value attribute
+        else if (attr == "value") {
+            (element as HTMLInputElement).value = this.formatAttributeValue(val,root_path)
+        }
+
+        // update checkbox checked property (bug?)
+        else if (attr == "checked") {
+            (element as HTMLInputElement).checked = val;
+        }
 
         // special attribute values
         else if (val === false) element.removeAttribute(attr);
@@ -443,12 +455,7 @@ export class DOMUtils {
             }
             
         }
-
-        // value attribute
-        else if (attr == "value") {
-            (element as HTMLInputElement).value = this.formatAttributeValue(val,root_path)
-        }
-        
+    
         // normal attribute
         else {
             if (val === false) element.removeAttribute(attr);
@@ -456,11 +463,7 @@ export class DOMUtils {
             else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
         }
 
-        // update checkbox checked property (bug?)
-        if (attr == "checked") {
-            element.checked = val;
-        }
-
+    
         return true;
         
     }

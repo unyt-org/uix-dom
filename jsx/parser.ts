@@ -1,9 +1,10 @@
 import type { HTMLElement, Element, DocumentFragment } from "../dom/mod.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import { JSX_INSERT_STRING, type DOMUtils } from "../datex-bindings/dom-utils.ts";
+import { JSX_INSERT_STRING, type DOMUtils, appendableContent } from "../datex-bindings/dom-utils.ts";
 
 import { Logger } from "datex-core-legacy/datex_all.ts";
 import { getCallerFile } from "datex-core-legacy/utils/caller_metadata.ts";
+import { Datex } from "datex-core-legacy/mod.ts";
 
 
 const logger = new Logger("JSX Parser");
@@ -18,7 +19,35 @@ export function escapeString(string:string) {
 
 export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 
-	return function parseJSX(type: string | typeof Element | typeof DocumentFragment | ((...args:unknown[])=>Element|DocumentFragment), params: Record<string,unknown>, isJSXS = false): Element {
+	function setChildren(element: Element, children: appendableContent[]|appendableContent[][], shadow_root: boolean) {
+		// is nested arrays in outer array
+		if (children instanceof Array && !Datex.Ref.isRef(children)) {
+			let onlyArrays = true;
+			for (const child of children) {
+				if (!(child instanceof Array)) {
+					onlyArrays = false;
+					break;
+				}
+			}
+			// is arrays
+			if (onlyArrays) {
+				for (const subChildren of children) setChildren(element, subChildren as appendableContent[], shadow_root);
+				return;
+			}
+		}
+
+		if (shadow_root) {
+			const template = parseJSX("template", {children, shadowrootmode:shadow_root});
+			if (domUtils) domUtils.append(element, template);
+			else element.append(template)
+		}
+		else {
+			if (domUtils) domUtils.append(element, children as appendableContent[]);
+			else element.append(...children as appendableContent[])
+		}
+	}
+
+	function parseJSX(type: string | typeof Element | typeof DocumentFragment | ((...args:unknown[])=>Element|DocumentFragment), params: Record<string,unknown>, isJSXS = false): Element {
 
 		let element:Element;
 		if ('children' in params && !(params.children instanceof Array)) params.children = [params.children];
@@ -98,18 +127,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 			}
 		}
 	
-		if (set_default_children) {
-			if (shadow_root) {
-				const template = parseJSX("template", {children, shadowrootmode:shadow_root});
-				if (domUtils) domUtils.append(element, template);
-				else element.append(template)
-			}
-			else {
-				if (domUtils) domUtils.append(element, children);
-				else element.append(...children)
-			}
-			
-		}
+		if (set_default_children) setChildren(element, children, shadow_root);
 	
 		// !important, cannot return directly because of stack problems, store in ptr variable first
 		if (domUtils) {
@@ -119,5 +137,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 
 		else return element;
 	}
+
+	return parseJSX;
 }
 

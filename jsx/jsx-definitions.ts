@@ -26,7 +26,7 @@ declare global {
 
 		type singleChild = Datex.RefOrValue<Element|DocumentFragment|string|number|boolean|bigint|null|undefined>;
 		type singleOrMultipleChildren = singleChild|singleChild[]|Map<number, singleChild>;
-		type childrenOrChildrenPromise = singleOrMultipleChildren|Promise<singleOrMultipleChildren>
+		type childrenOrChildrenPromise = singleOrMultipleChildren|Promise<singleOrMultipleChildren>|Datex.Pointer<Element[]>
 		// enable as workaround to allow {...[elements]} type checking to work correctly
 		// type childrenOrChildrenPromise = _childrenOrChildrenPromise|_childrenOrChildrenPromise[]
 

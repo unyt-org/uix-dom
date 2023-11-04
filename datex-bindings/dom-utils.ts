@@ -11,7 +11,7 @@ import { client_type } from "datex-core-legacy/utils/constants.ts";
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
 type appendableContentBase = Datex.RefOrValue<Element|DocumentFragment|string|number|bigint|boolean>|Promise<appendableContent>;
-type appendableContent = appendableContentBase|Promise<appendableContentBase>
+export type appendableContent = appendableContentBase|Promise<appendableContentBase>
 
 
 // deno-lint-ignore no-namespace

@@ -30,12 +30,13 @@ declare global {
 		// enable as workaround to allow {...[elements]} type checking to work correctly
 		// type childrenOrChildrenPromise = _childrenOrChildrenPromise|_childrenOrChildrenPromise[]
 
-		type htmlAttrs<T extends Record<string,unknown>, allowPromises extends boolean = false> = DatexValueObject<Omit<Partial<T>, 'children'|'style'>, allowPromises>
+		type htmlAttrs<T extends Record<string,unknown>, allowPromises extends boolean = false> = DatexValueObject<Omit<Partial<T>, 'children'|'style'|'class'>, allowPromises>
 
 		// Common attributes of the standard HTML elements and JSX components
 		// using _IntrinsicAttributes (not IntrinsicAttributes) to prevent jsx default type behaviour
 		type _IntrinsicAttributes<El extends HTMLElement = HTMLElement> = {
-			style?: Datex.RefOrValue<string|Record<string,Datex.RefOrValue<string|number|undefined>>>,
+			style?: Datex.RefOrValue<string|{[key: string]: Datex.RefOrValue<string|number|boolean|undefined>}>,
+			class?: Datex.RefOrValue<string|{[key: string]: Datex.RefOrValue<boolean>}>,
 		} & htmlAttrs<validHTMLElementAttrs<El>>
 
 		// TODO: enable for UIX - Common attributes of the UIX components only

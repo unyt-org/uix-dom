@@ -34,7 +34,7 @@ export const defaultElementAttributes = [
 	"accesskey", "class", "contenteditable", "contextmenu", "dir", "draggable", "dropzone", "hidden", "id", "lang", "spellcheck", "style", "tabindex", "title",
 	"role", "name", "slot",
 	// uix specific
-	"uix-module", "datex-pointer", "shadow-root", "light-root"
+	"uix-module", "datex-pointer", "shadow-root", "light-root", "display"
 ] as const;
 
 // TODO: replace with uix:, datex:
@@ -114,7 +114,8 @@ export const htmlElementAttributes = {
 	video: [...src, ...widthAndHeight, "autoplay", "controls", "loop", "muted", "poster", "preload", "playsinline"],
 	textarea: ["placeholder"],
 	option: ["value", "selected"],
-	select: ["value"]
+	select: ["value"],
+	dialog: ["open"]
 } as const satisfies {[key in keyof HTMLElementTagNameMap]?: readonly string[]};
 
 
@@ -164,7 +165,7 @@ export type htmlElementAttributeValues = {
 	form: {
 		method: "get"|"post",
 		enctype: "application/x-www-form-urlencoded"|"multipart/form-data"|"text/plain"
-		action: string // TODO: |UIX.Entrypoint
+		action: string | URL | ((...args:unknown[]) => unknown)  // TODO: |UIX.Entrypoint
 	},
 
 	img: widthAndHeight & src &  {

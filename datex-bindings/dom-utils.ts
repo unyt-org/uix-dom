@@ -1,9 +1,9 @@
 import { Datex } from "datex-core-legacy"
 import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../attributes.ts";
-import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment, Document, HTMLInputElement } from "../dom/mod.ts";
+import { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment, Document, HTMLInputElement } from "../dom/mod.ts";
 
 import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
-import { DX_VALUE } from "datex-core-legacy/datex_all.ts";
+import { DX_VALUE, Ref } from "datex-core-legacy/datex_all.ts";
 import { DOMContext } from "../dom/DOMContext.ts";
 import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
@@ -410,6 +410,50 @@ export class DOMUtils {
             (element as HTMLInputElement).checked = val;
         }
 
+        // update checkbox checked property (bug?)
+        else if (element instanceof this.context.HTMLDialogElement && attr == "open") {
+            Datex.Ref.observeAndInit(val, (val) => {
+                if (val) element.showModal();
+                else element.close()
+            })
+        }
+
+        // display shorthand for style.display
+        else if (attr == "display") {
+            this.setCSSProperty(element as HTMLElement, "display", val as boolean);
+        }
+
+        // class mapping
+        else if (attr == "class" && typeof val == "object") {
+            console.log("clas object",val);
+            const update = (key:string, val:Datex.RefOrValue<boolean>) => {
+                console.log("update",key,Datex.Ref.collapseValue(val, true, true))
+                if (Datex.Ref.collapseValue(val, true, true)) element.classList.add(key);
+                else element.classList.remove(key);
+            }
+            const updateAll = (obj: Record<string, Datex.RefOrValue<boolean>>) => {
+                for (const [key, val] of Object.entries(obj)) update(key, val);
+            }
+            
+            
+            if (Datex.Ref.isRef(val)) {
+                Datex.Ref.observe(val, (v, k, t) => {
+                    console.log(">>",v,k,t)
+                    if (t == Datex.Pointer.UPDATE_TYPE.INIT) updateAll(v);
+                    else if (typeof k == "string") update(k, v);
+                })
+            }
+            // simple object with pointers as properties
+            else {
+                updateAll(val);
+                for (const [key, value] of Object.entries(val)) {
+                    if (value instanceof Datex.Ref) value.observe(v => update(key, v));
+                }
+            }
+            
+        }
+    
+
         // special attribute values
         else if (val === false) element.removeAttribute(attr);
         else if (val === true || val === undefined) element.setAttribute(attr,"");
@@ -444,7 +488,10 @@ export class DOMUtils {
                 // action callback function
                 if (typeof handler == "function") {
                     const eventName = "submit";
-                    element.addEventListener(eventName, <any>handler);
+                    element.addEventListener(eventName, async () => {
+                        const {Routing} = await import("../../routing/frontend-routing.ts"); // TODO: better way to import
+                        Routing.renderEntrypoint(handler)
+                    });
                     // save in [DOMUtils.EVENT_LISTENERS]
                     if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, [Set<Function>, boolean]>();
                     if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].has(eventName)) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].set(eventName, new Set());
@@ -494,11 +541,9 @@ export class DOMUtils {
     }
 
     // set css property, updated if DatexValue
-    setCSSProperty<T extends HTMLElement>(element:T, property:string, value:Datex.CompatValue<string|number|undefined>):T{
-
+    setCSSProperty<T extends HTMLElement>(element:T, property:string, value:Datex.RefOrValue<string|number|undefined|boolean>):T{
         // convert camelCase to kebab-case
         property = property?.replace(/[A-Z]/g, x => `-${x.toLowerCase()}`);
-
         // none
         if (value == undefined) {
             if (element.style.removeProperty) element.style.removeProperty(property);
@@ -506,15 +551,19 @@ export class DOMUtils {
             else delete element.style[property];
         }
 
-        // UIX color
-        else if (value instanceof Datex.PointerProperty && value.pointer.val == Theme.colors) {
-            if (element.style.setProperty) element.style.setProperty(property, `var(--${value.key})`); // autmatically updated css variable
-            // @ts-ignore style property access
-            else element.style[property] = `var(--${value.key})`
-        }
+        // // UIX color
+        // else if (value instanceof Datex.PointerProperty && value.pointer.val == Theme.colors) {
+        //     if (element.style.setProperty) element.style.setProperty(property, `var(--${value.key})`); // autmatically updated css variable
+        //     // @ts-ignore style property access
+        //     else element.style[property] = `var(--${value.key})`
+        // }
         // other Datex CompatValue
         else {
             Datex.Ref.observeAndInit(value, (v,k,t) => {
+                if (property == "display" && typeof v == "boolean") {
+                    v = v ? "revert" : "none";
+                }
+
                 if (v == undefined) {
                     if (element.style.removeProperty) element.style.removeProperty(property);
                     // @ts-ignore style property access

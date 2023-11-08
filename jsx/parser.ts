@@ -19,31 +19,22 @@ export function escapeString(string:string) {
 
 export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 
-	function setChildren(element: Element, children: appendableContent[]|appendableContent[][], shadow_root: boolean) {
+	function setChildren(element: Element, children: appendableContent|appendableContent[]|appendableContent[][], shadow_root: boolean) {
 		// is nested arrays in outer array
 		if (children instanceof Array && !Datex.Ref.isRef(children)) {
-			let onlyArrays = true;
 			for (const child of children) {
-				if (!(child instanceof Array)) {
-					onlyArrays = false;
-					break;
-				}
-			}
-			// is arrays
-			if (onlyArrays) {
-				for (const subChildren of children) setChildren(element, subChildren as appendableContent[], shadow_root);
-				return;
+				setChildren(element, child, shadow_root);
 			}
 		}
 
-		if (shadow_root) {
+		else if (shadow_root) {
 			const template = parseJSX("template", {children, shadowrootmode:shadow_root});
 			if (domUtils) domUtils.append(element, template);
 			else element.append(template)
 		}
 		else {
-			if (domUtils) domUtils.append(element, children as appendableContent[]);
-			else element.append(...children as appendableContent[])
+			if (domUtils) domUtils.append(element, children as appendableContent|appendableContent[]);
+			else element.append(...(children instanceof Array ? children : [children]) as appendableContent[])
 		}
 	}
 

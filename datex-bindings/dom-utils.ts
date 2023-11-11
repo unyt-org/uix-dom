@@ -1,10 +1,10 @@
 import { Datex } from "datex-core-legacy"
 import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../attributes.ts";
-import { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment, Document, HTMLInputElement } from "../dom/mod.ts";
+import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment, Document, HTMLInputElement } from "../dom/mod.ts";
 
 import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
 import { DX_VALUE, Ref } from "datex-core-legacy/datex_all.ts";
-import { DOMContext } from "../dom/DOMContext.ts";
+import type { DOMContext } from "../dom/DOMContext.ts";
 import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
 

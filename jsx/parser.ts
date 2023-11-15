@@ -101,6 +101,8 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 		// 	throw new Error("Invalid JSX element, must be of type Element")
 		// }
 	
+		if (set_default_children) setChildren(element, children, shadow_root);
+
 		if (set_default_attributes) {
 			let module = ((<Record<string,unknown>>props)['module'] ?? (<Record<string,unknown>>props)['uix-module']) as string|undefined;
 			// ignore module of is explicitly module===null, otherwise fallback to getCallerFile
@@ -118,7 +120,6 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 			}
 		}
 	
-		if (set_default_children) setChildren(element, children, shadow_root);
 	
 		// !important, cannot return directly because of stack problems, store in ptr variable first
 		if (domUtils) {

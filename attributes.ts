@@ -34,7 +34,9 @@ export const defaultElementAttributes = [
 	"accesskey", "class", "contenteditable", "contextmenu", "dir", "draggable", "dropzone", "hidden", "id", "lang", "spellcheck", "style", "tabindex", "title",
 	"role", "name", "slot",
 	// uix specific
-	"uix-module", "datex-pointer", "shadow-root", "light-root", "display"
+	"uix-module", 
+	"datex-pointer", "datex-update",
+	"shadow-root", "light-root", "display"
 ] as const;
 
 // TODO: replace with uix:, datex:
@@ -42,7 +44,8 @@ export const defaultElementAttributes = [
 type customDefaultAttributeValues = {
 	"uix-module": string|URL|null,
 	"shadow-root": boolean|'open'|'closed',
-	"datex-pointer": boolean
+	"datex-pointer": boolean,
+	"datex-update": "onchange"|"onsubmit"
 }
 
 export type validHTMLElementAttrs<El extends HTMLElement> = {

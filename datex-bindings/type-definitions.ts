@@ -94,21 +94,29 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 		return element;
 	}
 
+	function appendToFragment(fragment: HTMLElement, val: any) {
+		domUtils.append(fragment, val);
+		if (val instanceof context.HTMLElement) {
+			if (val.hasAttribute("slot")) fragment.setAttribute("slot", val.getAttribute("slot"))
+		}
+	}
+
 	const transformWrapper = {
 		// special transform-fragment wrapper for transforms
 		wrap_transform(val) {
 			const fragment = document.createElement("transform-fragment");
-			domUtils.append(fragment, val);
+			appendToFragment(fragment, val);
 			return fragment;
 		},
 
-		allow_transform_value(type) {
-			return allDomTypes.has(type.root_type) || "must be a DOM element"
+		allow_transform_value(type: Datex.Type) {
+			return allDomTypes.has(type.root_type) || type.root_type.name == "uix" || "must be a DOM element"
 		},
 
 		handle_transform(val, ptr) {
-			ptr.val.innerHTML = "";
-			domUtils.append(ptr.val, val)
+			const fragment = ptr.val;
+			fragment.innerHTML = "";
+			appendToFragment(fragment, val);
 		}
 	}
 
@@ -236,7 +244,12 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 
 			// set attrs, style, content from object
 			if (typeof val == "object" && Object.getPrototypeOf(val) === Object.prototype) {
-				for (const [prop,value] of Object.entries(val)) {
+				
+				// sort entries: content, attr, style
+				const order = ["content", "attr", "style"];
+				const entries = Object.entries(val).sort(([name]) => order.indexOf(name));
+				
+				for (const [prop,value] of entries) {
 					if (prop=="style" && typeof value != "string") {
 						for (const [prop, val] of Object.entries(value)) {
 							el.style[prop] = val;

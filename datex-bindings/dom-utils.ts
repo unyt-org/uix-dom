@@ -1,9 +1,9 @@
 import { Datex } from "datex-core-legacy"
 import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../attributes.ts";
-import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, Comment, Document, HTMLInputElement } from "../dom/mod.ts";
+import { type Element, type Text, type DocumentFragment, type HTMLTemplateElement, type HTMLElement, type SVGElement, type MathMLElement, type Node, type Comment, type Document, type HTMLInputElement, HTMLFormElement } from "../dom/mod.ts";
 
 import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
-import { DX_VALUE, Ref } from "datex-core-legacy/datex_all.ts";
+import { DX_VALUE, Ref, logger } from "datex-core-legacy/datex_all.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
 import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
@@ -18,7 +18,8 @@ export type appendableContent = appendableContentBase|Promise<appendableContentB
 export namespace DOMUtils {
     export type elWithEventListeners = Element & {
         [DOMUtils.EVENT_LISTENERS]:Map<keyof HTMLElementEventMap, Set<[(...args:any)=>any, boolean]>>
-        [DOMUtils.ATTR_BINDINGS]:Map<string, Datex.Ref>
+        [DOMUtils.ATTR_BINDINGS]:Map<string, Datex.Ref>,
+        [DOMUtils.DATEX_UPDATE_TYPE]?: string
     }
 }
 
@@ -26,6 +27,8 @@ export class DOMUtils {
 
     static readonly EVENT_LISTENERS: unique symbol = Symbol.for("DOMUtils.EVENT_LISTENERS");
     static readonly ATTR_BINDINGS: unique symbol = Symbol.for("DOMUtils.ATTR_BINDINGS");
+
+    static readonly DATEX_UPDATE_TYPE: unique symbol = Symbol.for("DOMUtils.DATEX_UPDATE_TYPE");
 
     readonly svgNS = "http://www.w3.org/2000/svg"
 	readonly mathMLNS = "http://www.w3.org/1998/Math/MathML"
@@ -402,12 +405,31 @@ export class DOMUtils {
 
         // value attribute
         else if (attr == "value") {
-            (element as HTMLInputElement).value = this.formatAttributeValue(val,root_path)
+            // handle select options
+            if (element.tagName.toLowerCase() === "select") {
+                for (const option of element.childNodes) {
+                    if (option instanceof this.context.HTMLOptionElement) {
+                        if (option.value == val) {
+                            option.setAttribute("selected","");
+                            break;
+                        }
+                    }
+                }
+            }
+            // set value property
+            else {
+                (element as HTMLInputElement).value = this.formatAttributeValue(val,root_path)
+            }
         }
 
         // update checkbox checked property (bug?)
         else if (attr == "checked") {
             (element as HTMLInputElement).checked = val;
+        }
+
+        // set datex-update
+        else if (attr == "datex-update") {
+            (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.DATEX_UPDATE_TYPE] = val as string;
         }
 
         // update checkbox checked property (bug?)
@@ -425,9 +447,7 @@ export class DOMUtils {
 
         // class mapping
         else if (attr == "class" && typeof val == "object") {
-            console.log("clas object",val);
             const update = (key:string, val:Datex.RefOrValue<boolean>) => {
-                console.log("update",key,Datex.Ref.collapseValue(val, true, true))
                 if (Datex.Ref.collapseValue(val, true, true)) element.classList.add(key);
                 else element.classList.remove(key);
             }

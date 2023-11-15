@@ -24,6 +24,11 @@ elements.define("H6", denoDom.HTMLHeadingElement)
 elements.define("FORM", denoDom.HTMLFormElement)
 elements.define("VIDEO", denoDom.HTMLVideoElement)
 elements.define("INPUT", denoDom.HTMLInputElement)
+elements.define("OPTION", denoDom.HTMLOptionElement)
+elements.define("DIALOG", denoDom.HTMLDialogElement)
+elements.define("BUTTON", denoDom.HTMLButtonElement)
+elements.define("IMG", denoDom.HTMLImageElement)
+elements.define("SELECT", denoDom.HTMLSelectElement)
 
 // create new custom element registry
 export const customElements = new CustomElementRegistry();

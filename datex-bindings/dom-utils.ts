@@ -330,16 +330,29 @@ export class DOMUtils {
                 (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_BINDINGS].set(attr, value)
             }
      
-
             // :out attributes
             if ((isSelectElement || isInputElement) && (attr == "value:out" || attr == "value")) {
 
                 const event = isSelectElement ? 'change' : 'input';
 
-                if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => value.val = element.value)
-                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => value.val = Number(element.value))
-                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => value.val = BigInt(element.value))
-                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => value.val = Boolean(element.value))
+                const handleSetVal = async (val:any) => {
+                    try {
+                        await (value as Datex.Ref).setVal(val)
+                        element.setCustomValidity("")
+                        element.reportValidity()
+                    }
+                    catch (e) {
+                        const message = e?.message ?? e?.toString()
+                        console.log("invalid input",message)
+                        element.setCustomValidity(message)
+                        element.reportValidity()
+                    }
+                }
+
+                if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => handleSetVal(element.value))
+                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => handleSetVal(Number(element.value)))
+                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => handleSetVal(BigInt(element.value)))
+                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(Boolean(element.value)))
                 else if (type.matchesType(Datex.Type.std.void)) {console.warn("setting value attribute to void", element)}
                 else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
 

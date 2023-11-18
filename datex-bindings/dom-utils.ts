@@ -343,7 +343,6 @@ export class DOMUtils {
                     }
                     catch (e) {
                         const message = e?.message ?? e?.toString()
-                        console.log("invalid input",message)
                         element.setCustomValidity(message)
                         element.reportValidity()
                     }

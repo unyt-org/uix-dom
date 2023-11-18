@@ -11,7 +11,7 @@ type RefOrValueUnion<U> = (U extends any ? Datex.RefOrValue<U> : never)
 declare global {
 	namespace JSX {
 		// JSX node definition
-		type Element = DomElement
+		type Element = DomElement|Promise<DomElement>
 
 		// type ElementClass = typeof Element
 

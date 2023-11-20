@@ -50,18 +50,19 @@ declare global {
 		}
 		
 		type IntrinsicElements = 
-		// html elements
-		{
-			readonly [key in keyof HTMLElementTagNameMap]: _IntrinsicAttributes<HTMLElementTagNameMap[key]> & {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & htmlAttrs<validHTMLElementSpecificAttrs<key>, true>
-		} 
-		// svg elements
-		& {
-			readonly [key in keyof SVGElementTagNameMap]: _IntrinsicAttributes<HTMLElementTagNameMap[key]> & {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & htmlAttrs<validSVGElementSpecificAttrs<key>, true>
-		} 
-		// other custom elements
-		& {
-			'shadow-root': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & {[key in keyof _IntrinsicAttributes]: never} & {mode?:'open'|'closed'}
-			'light-root': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & {[key in keyof _IntrinsicAttributes]: never}
-		}
+			// html elements
+			{
+				readonly [key in keyof HTMLElementTagNameMap]: _IntrinsicAttributes<HTMLElementTagNameMap[key]> & {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & htmlAttrs<validHTMLElementSpecificAttrs<key>, true>
+			} 
+			// svg elements
+			& {
+				readonly [key in keyof SVGElementTagNameMap]: _IntrinsicAttributes<HTMLElementTagNameMap[key]> & {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & htmlAttrs<validSVGElementSpecificAttrs<key>, true>
+			} 
+			// other custom elements
+			& {
+				'shadow-root': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & {mode?:'open'|'closed'}
+				'light-root': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]}
+				'frontend-slot': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & {name?:string}
+			}
 	}
 }

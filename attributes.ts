@@ -36,7 +36,7 @@ export const defaultElementAttributes = [
 	// uix specific
 	"uix-module", 
 	"datex-pointer", "datex-update",
-	"shadow-root", "light-root", "display"
+	"shadow-root", "light-root", "frontend-slot", "display"
 ] as const;
 
 // TODO: replace with uix:, datex:

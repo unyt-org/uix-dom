@@ -384,6 +384,10 @@ export class DOMUtils {
         else return this.setAttribute(element, attr, value, rootPath)
     }
 
+    private isNormalFunction(fnSrc:string) {
+        return !!fnSrc.match(/^(async\s+)?function(\(| |\*)/)
+    }
+
 	private setAttribute(element: Element, attr:string, val:unknown, root_path?:string|URL): boolean {
 
         // special suffixes:
@@ -402,11 +406,20 @@ export class DOMUtils {
             }
             else if (JSTransferableFunction.functionIsAsync(val as (...args: unknown[]) => unknown)) {
                 // async! (always returns true, doesn't await promise)
-                JSTransferableFunction.createAsync(val as (...args: unknown[]) => Promise<unknown>).then(fn => this.setAttribute(element, attr, fn, root_path)); 
+                JSTransferableFunction
+                    .createAsync(val as (...args: unknown[]) => Promise<unknown>)
+                    .then(fn => {
+                        this.setAttribute(element, attr, fn, root_path)
+                        // auto-inject 'this' context
+                        if (this.isNormalFunction(fn.source)) fn.deps['this'] = element
+                    })
                 return true;
             }
             else {
-                val = JSTransferableFunction.create(val as (...args: unknown[]) => unknown)
+                val = JSTransferableFunction.create(val as (...args: unknown[]) => unknown);
+                
+                // auto-inject 'this' context
+                if (this.isNormalFunction((val as JSTransferableFunction).source)) (val as JSTransferableFunction).deps['this'] = element
             }
             attr = attr.replace(":frontend", "");
 

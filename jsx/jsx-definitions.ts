@@ -1,9 +1,9 @@
 import type { Datex } from "datex-core-legacy/datex.ts";
 import type { validHTMLElementAttrs, validHTMLElementSpecificAttrs, validSVGElementSpecificAttrs } from "../attributes.ts";
-import type { Element, DocumentFragment } from "../dom/mod.ts";
+import type { HTMLElement, DocumentFragment } from "../dom/mod.ts";
 import { HTMLElementTagNameMap, SVGElementTagNameMap } from "../dom/deno-dom/src/dom/types/tags.ts";
 
-type DomElement = Element
+type DomElement = HTMLElement // TODO: Element?
 
 
 type RefOrValueUnion<U> = (U extends any ? Datex.RefOrValue<U> : never)

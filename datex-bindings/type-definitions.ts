@@ -115,6 +115,9 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 
 		handle_transform(val, ptr) {
 			const fragment = ptr.val;
+			// no content change
+			if (fragment.children.length == 1 && [...fragment.children][0] == val) return;
+
 			fragment.innerHTML = "";
 			appendToFragment(fragment, val);
 		}

@@ -5,6 +5,7 @@ import { JSX_INSERT_STRING, type DOMUtils, appendableContent } from "../datex-bi
 import { Logger } from "datex-core-legacy/datex_all.ts";
 import { getCallerFile } from "datex-core-legacy/utils/caller_metadata.ts";
 import { Datex } from "datex-core-legacy/mod.ts";
+import { client_type } from "datex-core-legacy/utils/constants.ts";
 
 
 const logger = new Logger("JSX Parser");
@@ -86,6 +87,11 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 	
 		else {
 			allow_invalid_attributes = false;
+
+			// frontend-slots only allowed on the backend
+			if (type == "frontend-slot" && client_type !== "deno") {
+				throw new Error("<frontend-slot> elements are only allowed on the backend");
+			}
 			
 			// convert shadow-root to template
 			if (type == "shadow-root") {

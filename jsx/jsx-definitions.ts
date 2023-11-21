@@ -11,7 +11,8 @@ type RefOrValueUnion<U> = (U extends any ? Datex.RefOrValue<U> : never)
 declare global {
 	namespace JSX {
 		// JSX node definition
-		type Element = DomElement|Promise<DomElement>
+		type Element = DomElement
+		type ElementType = string|{new(): HTMLElement}|((props?:any, propsValues?:any)=>DomElement)|((props?:any, propsValues?:any)=>Promise<DomElement>)
 
 		// type ElementClass = typeof Element
 
@@ -24,7 +25,7 @@ declare global {
 
 		// Property in 'props' that will hold the children of the Component
 		interface ElementChildrenAttribute {
-			children: Element[]|Element
+			children: HTMLElement[]|HTMLElement
 		}
 
 		type singleChild = Datex.RefOrValue<Element>|Datex.RefOrValue<DocumentFragment>|Datex.RefOrValue<string>|Datex.RefOrValue<number>|Datex.RefOrValue<boolean>|Datex.RefOrValue<bigint>|Datex.RefOrValue<null>|Datex.RefOrValue<undefined>;

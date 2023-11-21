@@ -102,9 +102,9 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 	}
 
 	const transformWrapper = {
-		// special transform-fragment wrapper for transforms
+		// special uix-fragment wrapper for transforms
 		wrap_transform(val) {
-			const fragment = document.createElement("transform-fragment");
+			const fragment = document.createElement("uix-fragment");
 			appendToFragment(fragment, val);
 			return fragment;
 		},
@@ -224,7 +224,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			else throw "not an " + this.class!.name;
 		},
 
-		// enable <transform-fragment> wrapping
+		// enable <uix-fragment> wrapping
 		...transformWrapper,
 
 		// called when replicating from state

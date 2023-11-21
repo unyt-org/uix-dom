@@ -39,6 +39,47 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 		}
 	}
 
+
+	function initElement({element, children, props, shadow_root, set_default_children, set_default_attributes, allow_invalid_attributes}: {
+		element: Element,
+		children: JSX.singleChild[],
+		props: { [x: string]: unknown; },
+		shadow_root: boolean,
+		set_default_children: boolean, 
+		set_default_attributes:boolean, 
+		allow_invalid_attributes: boolean
+	}) {
+		if (set_default_children) setChildren(element, children, shadow_root);
+
+		if (set_default_attributes) {
+			let module = ((<Record<string,unknown>>props)['module'] ?? (<Record<string,unknown>>props)['uix-module']) as string|undefined;
+			// ignore module of is explicitly module===null, otherwise fallback to getCallerFile
+			// TODO: optimize don't call getCallerFile for each nested jsx element, pass on from parent?
+			if (module === undefined) {
+				module = getCallerFile();
+			}
+			
+			for (const [attr,val] of Object.entries(props)) {
+				if (attr == "style" && (element as HTMLElement).style) domUtils.setCSS(element as HTMLElement, <any> val);
+				else {
+					const valid_attr = domUtils.setElementAttribute(element, attr, <any>val, module);
+					if (!allow_invalid_attributes && !valid_attr) logger.warn(`Attribute "${attr}" is not allowed for <${element.tagName.toLowerCase()}> element`)
+				}
+			}
+		}
+
+
+		// !important, cannot return directly because of stack problems, store in ptr variable first
+		if (domUtils) {
+			const ptr = domUtils.addProxy(element);
+			return ptr;
+		}
+
+		else return element;
+	}
+
+
+
 	function parseJSX(type: string | typeof Element | typeof DocumentFragment | ((...args:unknown[])=>Element|DocumentFragment), params: Record<string,unknown>, isJSXS = false): Element {
 
 		let element:Element;
@@ -80,7 +121,25 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 				set_default_attributes = (type as any)[SET_DEFAULT_ATTRIBUTES];
 				if (set_default_children) delete params.children;
 	
-				element = type(params) 
+				element = type(params)
+				
+				// async component, use uix-fragment
+				if (element instanceof Promise) {
+					const fragment = document.createElement("uix-fragment");
+					(element as Promise<Element>).then(val => {
+						fragment.append(initElement({
+							element: val,
+							children,
+							props,
+							shadow_root, 
+							set_default_children, 
+							set_default_attributes, 
+							allow_invalid_attributes
+						}))
+					});
+					return fragment;
+				}
+
 			}
 		}
 	
@@ -106,36 +165,18 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 		// if (!(element instanceof context.Element || element instanceof context.DocumentFragment)) {
 		// 	throw new Error("Invalid JSX element, must be of type Element")
 		// }
-	
-		if (set_default_children) setChildren(element, children, shadow_root);
 
-		if (set_default_attributes) {
-			let module = ((<Record<string,unknown>>props)['module'] ?? (<Record<string,unknown>>props)['uix-module']) as string|undefined;
-			// ignore module of is explicitly module===null, otherwise fallback to getCallerFile
-			// TODO: optimize don't call getCallerFile for each nested jsx element, pass on from parent?
-			if (module === undefined) {
-				module = getCallerFile();
-			}
-			
-			for (const [attr,val] of Object.entries(props)) {
-				if (attr == "style" && (element as HTMLElement).style) domUtils.setCSS(element as HTMLElement, <any> val);
-				else {
-					const valid_attr = domUtils.setElementAttribute(element, attr, <any>val, module);
-					if (!allow_invalid_attributes && !valid_attr) logger.warn(`Attribute "${attr}" is not allowed for <${element.tagName.toLowerCase()}> element`)
-				}
-			}
-		}
-	
-	
-		// !important, cannot return directly because of stack problems, store in ptr variable first
-		if (domUtils) {
-			const ptr = domUtils.addProxy(element);
-			return ptr;
-		}
-
-		else return element;
+		return initElement({
+			element,
+			children,
+			props,
+			shadow_root, 
+			set_default_children, 
+			set_default_attributes, 
+			allow_invalid_attributes
+		})
+		
 	}
 
 	return parseJSX;
 }
-

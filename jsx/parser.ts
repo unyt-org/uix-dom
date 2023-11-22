@@ -82,6 +82,8 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 
 	function parseJSX(type: string | typeof Element | typeof DocumentFragment | ((...args:unknown[])=>Element|DocumentFragment), params: Record<string,unknown>, isJSXS = false): Element {
 
+		Datex.Ref.freezeCapturing = true;
+
 		let element:Element;
 		if ('children' in params && !(params.children instanceof Array)) params.children = [params.children];
 		const { children = [], ...props } = params as Record<string,unknown> & {children:JSX.singleChild[]}
@@ -122,7 +124,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 				if (set_default_children) delete params.children;
 	
 				element = type(params)
-				
+
 				// async component, use uix-fragment
 				if (element instanceof Promise) {
 					const fragment = document.createElement("uix-fragment");
@@ -137,6 +139,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 							allow_invalid_attributes
 						}))
 					});
+					Datex.Ref.freezeCapturing = false;
 					return fragment;
 				}
 
@@ -166,7 +169,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 		// 	throw new Error("Invalid JSX element, must be of type Element")
 		// }
 
-		return initElement({
+		const res = initElement({
 			element,
 			children,
 			props,
@@ -174,7 +177,9 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 			set_default_children, 
 			set_default_attributes, 
 			allow_invalid_attributes
-		})
+		});
+		Datex.Ref.freezeCapturing = false;
+		return res;
 		
 	}
 

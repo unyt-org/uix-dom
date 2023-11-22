@@ -6,6 +6,8 @@ import type { DOMContext } from "../dom/DOMContext.ts";
 import type { Element, DocumentFragment, MutationObserver, Document, HTMLElement, Node, Comment } from "../dom/mod.ts"
 import { querySelector } from "../dom/shadow_dom_selector.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
+import { allDomTypes, commentType, documentType, fragmentType, htmlType, mathmlType, svgType } from "./dom-datex-types.ts";
+import { getTransformWrapper } from "./transform-wrapper.ts";
 // import { blobToBase64 } from "./blob-to-base64.ts";
 
 let definitionsLoaded = false;
@@ -25,21 +27,6 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 	if (definitionsLoaded) throw new Error("DATEX type binding very already loaded for a window object")
 	definitionsLoaded = true;
 
-	const htmlType = Datex.Type.get("html");
-	const svgType = Datex.Type.get("svg");
-	const mathmlType = Datex.Type.get("mathml");
-	const documentType = Datex.Type.get("htmldocument");
-	const fragmentType = Datex.Type.get("htmlfragment");
-	const commentType = Datex.Type.get("htmlcomment");
-
-	const allDomTypes = new Set([
-		htmlType,
-		svgType,
-		mathmlType,
-		documentType,
-		fragmentType,
-		commentType
-	])
 
 	function bindObserver(element:Element) {
 		const pointer = Datex.Pointer.getByValue(element);
@@ -94,35 +81,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 		return element;
 	}
 
-	function appendToFragment(fragment: HTMLElement, val: any) {
-		domUtils.append(fragment, val);
-		if (val instanceof context.HTMLElement) {
-			if (val.hasAttribute("slot")) fragment.setAttribute("slot", val.getAttribute("slot"))
-		}
-	}
-
-	const transformWrapper = {
-		// special uix-fragment wrapper for transforms
-		wrap_transform(val) {
-			const fragment = document.createElement("uix-fragment");
-			appendToFragment(fragment, val);
-			return fragment;
-		},
-
-		allow_transform_value(type: Datex.Type) {
-			return allDomTypes.has(type.root_type) || type.root_type.name == "uix" || "must be a DOM element"
-		},
-
-		handle_transform(val, ptr) {
-			const fragment = ptr.val;
-			// no content change
-			if (fragment.children.length == 1 && [...fragment.children][0] == val) return;
-
-			fragment.innerHTML = "";
-			appendToFragment(fragment, val);
-		}
-	}
-
+	const transformWrapper = getTransformWrapper(domUtils, context)
 
 	// handle htmlfragment (DocumentFragment)
 	fragmentType.setJSInterface({

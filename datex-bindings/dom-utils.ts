@@ -615,6 +615,10 @@ export class DOMUtils {
                     else delete element.style[property];
                 }
                 else {
+                    if (!element.style) {
+                        // TODO: handle this case if trying to set global css variable on document (for reactive css)
+                        return;
+                    }
                     if (element.style.setProperty) element.style.setProperty(property, this.getCSSProperty(<string>v))
                     // @ts-ignore style property access
                     else element.style[property] = this.getCSSProperty(v);

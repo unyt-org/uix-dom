@@ -370,7 +370,7 @@ export class DOMUtils {
                 if (!(element instanceof this.context.HTMLInputElement)) throw new Error("the 'checked' attribute is only supported for <input> elements");
 
                 if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener('change', () => value.val = element.checked)
-                else if (type.matchesType(Datex.Type.std.void)) {console.warn("setting checked attribute to void", element)}
+                else if (type.matchesType(Datex.Type.std.void)) {console.warn("setting checked attribute to void")}
                 else throw new Error("The type "+type+" is not supported for the 'checked' attribute of the <input> element");
             }
 

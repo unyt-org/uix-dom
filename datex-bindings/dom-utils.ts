@@ -407,26 +407,35 @@ export class DOMUtils {
 
     private _workaroundGetHandler1(element: WeakRef<Element>, attr: string, rootPath?: string|URL) {
         return (v:any) => {
-            this.setAttribute(element.deref()!, attr, v, rootPath);
+            const deref = element.deref();
+            if (!deref) {
+                logger.warn("Undetected garbage collection (#uix-w0001)");
+                return;
+            }
+            this.setAttribute(deref, attr, v, rootPath);
         }
     }
 
     private _workaroundGetHandler2(element: WeakRef<Element>) {
         return (val:any) => {
-            if (val) element.deref()!.showModal();
-            else element.deref()!.close()
+            const deref = element.deref();
+            if (!deref) {
+                logger.warn("Undetected garbage collection (#uix-w0001)");
+                return;
+            }
+            if (val) deref.showModal();
+            else deref.close()
         }
     }
 
     private _workaroundGetHandler3(textNode: WeakRef<Text>) {
         return (v:any) => {
-            textNode.deref()!.textContent = v!=undefined ? (<any>v).toString() : ''
-        }
-    }
-
-    private _workaroundGetHandler4(textNode: WeakRef<Element>) {
-        return (v:any) => {
-            textNode.deref()!.textContent = v!=undefined ? (<any>v).toString() : ''
+            const deref = textNode.deref();
+            if (!deref) {
+                logger.warn("Undetected garbage collection (#uix-w0001)");
+                return;
+            }
+            deref.textContent = v!=undefined ? (<any>v).toString() : ''
         }
     }
 

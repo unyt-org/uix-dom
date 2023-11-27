@@ -28,6 +28,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 	definitionsLoaded = true;
 
 
+	// TODO: not functional yet
 	function bindObserver(element:Element) {
 		const pointer = Datex.Pointer.getByValue(element);
 		if (!pointer) throw new Error("cannot bind observers for HTMLElement without pointer")
@@ -39,44 +40,39 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 
 		// @ts-ignore
 		if (element[OBSERVER]) return;
+		if (element[OBSERVER_IGNORE]) return;
 
+		// const ptr = Datex.Pointer.getByValue(element);
+
+		// important: no direct references to ptr or element in this handler!!!!
 		const handler: MutationCallback = (mutations: MutationRecord[], observer: MutationObserver) => {
-			// @ts-ignore
-			if (element[OBSERVER_IGNORE]) {
-				// @ts-ignore
-				element[OBSERVER_IGNORE] = false;
-				return;
-			}
-			const ptr = Datex.Pointer.getByValue(element);
-			if (!ptr) return;
 
-			// @ts-ignore
-			if (element[OBSERVER_EXCLUDE_UPDATES]) {
-				// @ts-ignore
-				ptr.excludeEndpointFromUpdates(element[OBSERVER_EXCLUDE_UPDATES])
-				// @ts-ignore
-				element[OBSERVER_EXCLUDE_UPDATES] = undefined;
-			}
+			// TODO:
+			// // @ts-ignore
+			// if (element[OBSERVER_EXCLUDE_UPDATES]) {
+			// 	// @ts-ignore
+			// 	ptr.excludeEndpointFromUpdates(element[OBSERVER_EXCLUDE_UPDATES])
+			// 	// @ts-ignore
+			// 	element[OBSERVER_EXCLUDE_UPDATES] = undefined;
+			// }
 
 			for (const mut of mutations) {
 				if (mut.type == "attributes") {
 					if (mut.attributeName == "uix-ptr") continue;
 					// TODO find style changes, don't send full style attribute
-					ptr.handleSetObservers(mut.attributeName)
+					// ptr.handleSetObservers(mut.attributeName)
 				}
 				else if (mut.type == "childList") {
 					console.log("mut")//,mut, mut.addedNodes, mut.removedNodes)
 				}
 			}
 
-			ptr.enableUpdatesForAll();
+			//ptr.enableUpdatesForAll();
 			
 		}
 
 		// @ts-ignore
 		element[OBSERVER] = new context.MutationObserver(handler)
-		// @ts-ignore
-		// element[OBSERVER].observe(element, {attributes: true, childList: true})
 
 		return element;
 	}

@@ -7,6 +7,7 @@ import { DX_VALUE, Ref, logger } from "datex-core-legacy/datex_all.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
 import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
+import { weakAction } from "datex-core-legacy/utils/weak-action.ts";
 
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
@@ -358,7 +359,17 @@ export class DOMUtils {
                 // TODO: allow duplex updates for "value"
                 if (attr == "value") {
                     const valid = this.setAttribute(element, attr, value.val, rootPath)
-                    if (valid) value.observe(v => this.setAttribute(element, attr, v, rootPath));
+                    const val = value;
+                    if (valid) {
+                        weakAction({element}, 
+                            ({element}) => {
+                                const handler = this._workaroundGetHandler1(element, attr, rootPath);
+                                val.observe(handler);
+                                return handler;
+                            }, 
+                            (handler) => val.unobserve(handler)
+                        );
+                    }
                     return valid;
                 }
 
@@ -377,11 +388,46 @@ export class DOMUtils {
             // default attributes
 
             const valid = this.setAttribute(element, attr, value.val, rootPath)
-            if (valid) value.observe(v => this.setAttribute(element, attr, v, rootPath));
+            if (valid) {
+                const val = value;
+                weakAction({element}, 
+                    ({element}) => {
+                        const handler = this._workaroundGetHandler1(element, attr, rootPath)
+                        val.observe(handler);
+                        return handler;
+                    }, 
+                    (handler) => val.unobserve(handler)
+                );
+            }
             return valid;
         }
         // default
         else return this.setAttribute(element, attr, value, rootPath)
+    }
+
+    private _workaroundGetHandler1(element: WeakRef<Element>, attr: string, rootPath?: string|URL) {
+        return (v:any) => {
+            this.setAttribute(element.deref()!, attr, v, rootPath);
+        }
+    }
+
+    private _workaroundGetHandler2(element: WeakRef<Element>) {
+        return (val:any) => {
+            if (val) element.deref()!.showModal();
+            else element.deref()!.close()
+        }
+    }
+
+    private _workaroundGetHandler3(textNode: WeakRef<Text>) {
+        return (v:any) => {
+            textNode.deref()!.textContent = v!=undefined ? (<any>v).toString() : ''
+        }
+    }
+
+    private _workaroundGetHandler4(textNode: WeakRef<Element>) {
+        return (v:any) => {
+            textNode.deref()!.textContent = v!=undefined ? (<any>v).toString() : ''
+        }
     }
 
     private isNormalFunction(fnSrc:string) {
@@ -459,10 +505,18 @@ export class DOMUtils {
 
         // update checkbox checked property (bug?)
         else if (element instanceof this.context.HTMLDialogElement && attr == "open") {
-            Datex.Ref.observeAndInit(val, (val) => {
-                if (val) element.showModal();
-                else element.close()
-            })
+
+            const theVal = val;
+
+            weakAction({element}, 
+                ({element}) => {
+                    const handler = this._workaroundGetHandler2(element);
+                    Datex.Ref.observeAndInit(theVal, handler);
+                    return handler;
+                }, 
+                (handler) => Datex.Ref.unobserve(theVal, handler)
+            );
+            
         }
 
         // display shorthand for style.display
@@ -694,9 +748,14 @@ export class DOMUtils {
         const textNode = this.document.createTextNode("");
         textNode[DX_VALUE] = content;
 
-        Datex.Ref.observeAndInit(content, (v,k,t) => {
-            textNode.textContent = v!=undefined ? (<any>v).toString() : ''
-        }, undefined, undefined);
+        weakAction({textNode}, 
+            ({textNode}) => {
+                const handler = this._workaroundGetHandler3(textNode);
+                Datex.Ref.observeAndInit(content, handler);
+                return handler;
+            }, 
+            (handler) => Datex.Ref.unobserve(content, handler)
+        );        
 
         return textNode;
     }

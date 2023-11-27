@@ -358,7 +358,9 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 		},
 
 		create_proxy(val, pointer) {
-			bindObserver(val);
+			if (!val.hasAttribute("uix-ptr")) val.setAttribute("uix-ptr", pointer.id);
+			// TODO: (handled separately for components)
+			// bindObserver(val);
 			return val;
 		}
 

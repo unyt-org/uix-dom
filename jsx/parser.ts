@@ -115,7 +115,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 				set_default_attributes = (type as any)[SET_DEFAULT_ATTRIBUTES] ?? true;
 				if (set_default_children) delete params.children;
 	
-				element = new type(props) // uix component
+				element = new type(set_default_children ? props : {...props, children}) // uix component
 			}
 			// function component
 			else {

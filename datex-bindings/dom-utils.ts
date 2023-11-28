@@ -409,7 +409,7 @@ export class DOMUtils {
         return (v:any) => {
             const deref = element.deref();
             if (!deref) {
-                logger.warn("Undetected garbage collection (#uix-w0001)");
+                logger.warn("Undetected garbage collection (uix-w0001)");
                 return;
             }
             this.setAttribute(deref, attr, v, rootPath);
@@ -420,7 +420,7 @@ export class DOMUtils {
         return (val:any) => {
             const deref = element.deref();
             if (!deref) {
-                logger.warn("Undetected garbage collection (#uix-w0001)");
+                logger.warn("Undetected garbage collection (uix-w0001)");
                 return;
             }
             if (val) deref.showModal();
@@ -432,7 +432,7 @@ export class DOMUtils {
         return (v:any) => {
             const deref = textNode.deref();
             if (!deref) {
-                logger.warn("Undetected garbage collection (#uix-w0001)");
+                logger.warn("Undetected garbage collection (uix-w0001)");
                 return;
             }
             deref.textContent = v!=undefined ? (<any>v).toString() : ''

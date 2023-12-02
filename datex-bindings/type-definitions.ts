@@ -8,7 +8,7 @@ import { querySelector } from "../dom/shadow_dom_selector.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
 import { allDomTypes, commentType, documentType, fragmentType, htmlType, mathmlType, svgType } from "./dom-datex-types.ts";
 import { getTransformWrapper } from "./transform-wrapper.ts";
-// import { blobToBase64 } from "./blob-to-base64.ts";
+import { LazyPointer } from "datex-core-legacy/runtime/lazy-pointer.ts";
 
 let definitionsLoaded = false;
 
@@ -229,13 +229,17 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 								
 								// child does no exist, just append
 								if (currentChildNodes[i] === undefined) {
-									// console.log("append",child)
 									domUtils.append(el, child);
 								}
 								// different child, replace
 								else if (child !== currentChild) {
-									// console.log("replace",currentChildNodes[i], child)
-									currentChildNodes[i].replaceWith(child);
+									if (child instanceof LazyPointer) {
+										const previous = currentChildNodes[i]
+										child.onLoad((val) => {
+											previous.replaceWith(val)
+										})
+									}
+									else currentChildNodes[i].replaceWith(child);
 								}
 								i++;
 							}

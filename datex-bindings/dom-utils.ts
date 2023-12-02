@@ -8,6 +8,7 @@ import type { DOMContext } from "../dom/DOMContext.ts";
 import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
 import { weakAction } from "datex-core-legacy/utils/weak-action.ts";
+import { LazyPointer } from "datex-core-legacy/runtime/lazy-pointer.ts";
 
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
@@ -252,6 +253,12 @@ export class DOMUtils {
         for (let child of children) {
             child = (child as any)?.[JSX_INSERT_STRING] ? (child as any).val : child; // collapse safely injected strings
 
+            // wait for lazyPointer (convert to promise)
+            if (child instanceof LazyPointer) {
+                const lazyPtr = child;
+                child = new Promise(resolve => lazyPtr.onLoad(v => resolve(v)));
+            }
+
             // wait for promise
             if (child instanceof Promise) {
                 const placeholder = this.document.createElement("div")
@@ -268,8 +275,9 @@ export class DOMUtils {
                     // set shadow root or replace
                     if (!this.appendElementOrShadowRoot(element, dom, false, false, e => (lastChildren.push(...e)))) placeholder.replaceWith(dom)
                 })
-                // return parent;
-            } else {
+            } 
+            
+            else {
                 const dom = this.valuesToDOMElement(child);
 
                 // set shadow root or append

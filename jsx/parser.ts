@@ -3,7 +3,7 @@ import type { DOMContext } from "../dom/DOMContext.ts";
 import { JSX_INSERT_STRING, type DOMUtils, appendableContent } from "../datex-bindings/dom-utils.ts";
 
 import { Logger } from "datex-core-legacy/datex_all.ts";
-import { getCallerFile } from "datex-core-legacy/utils/caller_metadata.ts";
+import { getCallerFile, getCallerInfo } from "datex-core-legacy/utils/caller_metadata.ts";
 import { Datex } from "datex-core-legacy/mod.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
 
@@ -40,14 +40,15 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 	}
 
 
-	function initElement({element, children, props, shadow_root, set_default_children, set_default_attributes, allow_invalid_attributes}: {
+	function initElement({element, children, props, shadow_root, set_default_children, set_default_attributes, allow_invalid_attributes, callerModule}: {
 		element: Element,
 		children: JSX.singleChild[],
 		props: { [x: string]: unknown; },
 		shadow_root: boolean,
 		set_default_children: boolean, 
 		set_default_attributes:boolean, 
-		allow_invalid_attributes: boolean
+		allow_invalid_attributes: boolean,
+		callerModule?: string
 	}) {
 		if (set_default_children) setChildren(element, children, shadow_root);
 
@@ -56,7 +57,10 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 			// ignore module of is explicitly module===null, otherwise fallback to getCallerFile
 			// TODO: optimize don't call getCallerFile for each nested jsx element, pass on from parent?
 			if (module === undefined) {
-				module = getCallerFile();
+				module = callerModule ?? getCallerInfo()?.[1].file!;
+				if (!module) {
+					logger.error("Could not determine location of JSX definition")
+				}
 			}
 			
 			for (const [attr,val] of Object.entries(props)) {
@@ -128,6 +132,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 				// async component, use uix-fragment
 				if (element instanceof Promise) {
 					const fragment = document.createElement("uix-fragment");
+					const callerModule = getCallerFile();
 					(element as Promise<Element>).then(val => {
 						fragment.append(initElement({
 							element: val,
@@ -136,7 +141,8 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 							shadow_root, 
 							set_default_children, 
 							set_default_attributes, 
-							allow_invalid_attributes
+							allow_invalid_attributes,
+							callerModule
 						}))
 					});
 					Datex.Ref.freezeCapturing = false;

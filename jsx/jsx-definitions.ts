@@ -11,8 +11,8 @@ type RefOrValueUnion<U> = (U extends any ? Datex.RefOrValue<U> : never)
 declare global {
 	namespace JSX {
 		// JSX node definition
-		type Element = DomElement
-		type ElementType = string|{new(): HTMLElement}|((props?:any, propsValues?:any)=>DomElement)|((props?:any, propsValues?:any)=>Promise<DomElement>)
+		type Element = DomElement|DocumentFragment
+		type ElementType = string|{new(): Element}|((props?:any, propsValues?:any)=>Element)|((props?:any, propsValues?:any)=>Promise<Element>)
 
 		// type ElementClass = typeof Element
 
@@ -63,6 +63,7 @@ declare global {
 			& {
 				'shadow-root': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & {mode?:'open'|'closed'}
 				'light-root': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]}
+				'uix-fragment': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]}
 				'frontend-slot': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & {name?:string}
 			}
 	}

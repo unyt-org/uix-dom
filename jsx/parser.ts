@@ -57,7 +57,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 			// ignore module of is explicitly module===null, otherwise fallback to getCallerFile
 			// TODO: optimize don't call getCallerFile for each nested jsx element, pass on from parent?
 			if (module === undefined) {
-				module = callerModule ?? getCallerInfo()?.[1].file!;
+				module = callerModule ?? getCallerInfo()?.[1]?.file!;
 				if (!module) {
 					logger.error("Could not determine location of JSX definition")
 				}

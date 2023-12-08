@@ -226,7 +226,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 							for (const child of (value instanceof Array ? value : [value])) {
 								let currentChild:any = currentChildNodes[i];
 								if (currentChild instanceof context.Text) currentChild = currentChild.textContent;
-								
+
 								// child does no exist, just append
 								if (currentChildNodes[i] === undefined) {
 									domUtils.append(el, child);
@@ -236,10 +236,10 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 									if (child instanceof LazyPointer) {
 										const previous = currentChildNodes[i]
 										child.onLoad((val) => {
-											previous.replaceWith(val)
+											domUtils.replaceWith(previous, val);
 										})
 									}
-									else currentChildNodes[i].replaceWith(child);
+									else domUtils.replaceWith(currentChildNodes[i], child)
 								}
 								i++;
 							}

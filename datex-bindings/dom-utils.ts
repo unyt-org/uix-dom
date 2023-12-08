@@ -777,6 +777,11 @@ export class DOMUtils {
         return textNode;
     }
 
+    replaceWith(node: Element, newContent: any) {
+        const newNode = this.valuesToDOMElement(newContent)
+        node.replaceWith(newNode);
+    }
+
     /**
      * 
      * @param anchor 

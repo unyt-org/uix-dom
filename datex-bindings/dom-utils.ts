@@ -168,7 +168,7 @@ export class DOMUtils {
             const endAnchor = new this.context.Comment("end " + Datex.Pointer.getByValue(children)?.idString())
             parent.append(startAnchor, endAnchor)
 
-            new IterableHandler<appendableContent, Node>(children as appendableContent[], {
+            const iterableHandler = new IterableHandler<appendableContent, Node>(children as appendableContent[], {
                 map: (v,k) => {
                     const el = this.valuesToDOMElement(v);
                     return el;
@@ -203,7 +203,9 @@ export class DOMUtils {
                     }
                 }
             })
-        
+
+            // workaround: prevent iterableHandler GC 
+            parent[Datex.Pointer.DISPOSABLES] = iterableHandler
 
             // TODO: element references updating required?
             // else if (children instanceof Element) {
@@ -371,11 +373,19 @@ export class DOMUtils {
                     if (valid) {
                         weakAction({element}, 
                             ({element}) => {
-                                const handler = this._workaroundGetHandler1(element, attr, rootPath);
+                                use (this, logger, val, attr, rootPath)
+                                const handler = (v: any) => {
+                                    const deref = element.deref();
+                                    if (!deref) {
+                                        logger.warn("Undetected garbage collection (uix-w0001)");
+                                        return;
+                                    }
+                                    this.setAttribute(deref, attr, v, rootPath);
+                                }
                                 val.observe(handler);
                                 return handler;
                             }, 
-                            (handler) => val.unobserve(handler)
+                            (handler) => use(val) && val.unobserve(handler)
                         );
                     }
                     return valid;
@@ -398,53 +408,29 @@ export class DOMUtils {
             const valid = this.setAttribute(element, attr, value.val, rootPath)
             if (valid) {
                 const val = value;
+                
                 weakAction({element}, 
                     ({element}) => {
-                        const handler = this._workaroundGetHandler1(element, attr, rootPath)
+                        use (this, attr, rootPath, logger, val);
+
+                        const handler = (v:any) => {
+                            const deref = element.deref();
+                            if (!deref) {
+                                logger.warn("Undetected garbage collection (uix-w0001)");
+                                return;
+                            }
+                            this.setAttribute(deref, attr, v, rootPath);
+                        };
                         val.observe(handler);
                         return handler;
-                    }, 
-                    (handler) => val.unobserve(handler)
+                    },
+                    (handler) => use(val) && val.unobserve(handler)
                 );
             }
             return valid;
         }
         // default
         else return this.setAttribute(element, attr, value, rootPath)
-    }
-
-    private _workaroundGetHandler1(element: WeakRef<Element>, attr: string, rootPath?: string|URL) {
-        return (v:any) => {
-            const deref = element.deref();
-            if (!deref) {
-                logger.warn("Undetected garbage collection (uix-w0001)");
-                return;
-            }
-            this.setAttribute(deref, attr, v, rootPath);
-        }
-    }
-
-    private _workaroundGetHandler2(element: WeakRef<Element>) {
-        return (val:any) => {
-            const deref = element.deref();
-            if (!deref) {
-                logger.warn("Undetected garbage collection (uix-w0001)");
-                return;
-            }
-            if (val) deref.showModal();
-            else deref.close()
-        }
-    }
-
-    private _workaroundGetHandler3(textNode: WeakRef<Text>) {
-        return (v:any) => {
-            const deref = textNode.deref();
-            if (!deref) {
-                logger.warn("Undetected garbage collection (uix-w0001)");
-                return;
-            }
-            deref.textContent = v!=undefined ? (<any>v).toString() : ''
-        }
     }
 
     private isNormalFunction(fnSrc:string) {
@@ -527,11 +513,20 @@ export class DOMUtils {
 
             weakAction({element}, 
                 ({element}) => {
-                    const handler = this._workaroundGetHandler2(element);
+                    use (theVal, logger, Datex);
+                    const handler = (val:any) => {
+                        const deref = element.deref();
+                        if (!deref) {
+                            logger.warn("Undetected garbage collection (uix-w0001)");
+                            return;
+                        }
+                        if (val) deref.showModal();
+                        else deref.close()
+                    };
                     Datex.Ref.observeAndInit(theVal, handler);
                     return handler;
                 }, 
-                (handler) => Datex.Ref.unobserve(theVal, handler)
+                (handler) => use(Datex, theVal) && Datex.Ref.unobserve(theVal, handler)
             );
             
         }
@@ -765,14 +760,31 @@ export class DOMUtils {
         const textNode = this.document.createTextNode("");
         textNode[DX_VALUE] = content;
 
-        weakAction({textNode}, 
-            ({textNode}) => {
-                const handler = this._workaroundGetHandler3(textNode);
-                Datex.Ref.observeAndInit(content, handler);
-                return handler;
-            }, 
-            (handler) => Datex.Ref.unobserve(content, handler)
-        );        
+        if (content instanceof Datex.Ref) {
+            weakAction({textNode}, 
+                ({textNode}) => {
+                    use (content, logger, Datex);
+                    const handler = (v:any) => {
+                        const deref = textNode.deref();
+                        if (!deref) {
+                            logger.warn("Undetected garbage collection (uix-w0001)");
+                            return;
+                        }
+                        deref.textContent = v!=undefined ? (<any>v).toString() : ''
+                    };
+                    Datex.Ref.observeAndInit(content, handler);
+                    return handler;
+                }, 
+                (handler) => {
+                    use(content, Datex);
+                    Datex.Ref.unobserve(content, handler)
+                }
+            );   
+        }     
+
+        else {
+            textNode.textContent = content!=undefined ? (<any>content).toString() : ''
+        }
 
         return textNode;
     }

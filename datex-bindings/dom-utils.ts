@@ -20,7 +20,9 @@ export type appendableContent = appendableContentBase|Promise<appendableContentB
 export namespace DOMUtils {
     export type elWithEventListeners = Element & {
         [DOMUtils.EVENT_LISTENERS]:Map<keyof HTMLElementEventMap, Set<[(...args:any)=>any, boolean]>>
-        [DOMUtils.ATTR_BINDINGS]:Map<string, Datex.Ref>,
+        [DOMUtils.PSEUDO_ATTR_BINDINGS]:Map<string, Datex.Ref>,
+        [DOMUtils.ATTR_DX_VALUES]:Map<string, Datex.Ref>,
+        [DOMUtils.CHILDREN_DX_VALUES]:Set<Datex.Ref>,        
         [DOMUtils.DATEX_UPDATE_TYPE]?: string
     }
 }
@@ -28,9 +30,12 @@ export namespace DOMUtils {
 export class DOMUtils {
 
     static readonly EVENT_LISTENERS: unique symbol = Symbol.for("DOMUtils.EVENT_LISTENERS");
-    static readonly ATTR_BINDINGS: unique symbol = Symbol.for("DOMUtils.ATTR_BINDINGS");
+    static readonly PSEUDO_ATTR_BINDINGS: unique symbol = Symbol.for("DOMUtils.ATTR_BINDINGS");
+    static readonly ATTR_DX_VALUES: unique symbol = Symbol.for("DOMUtils.ATTR_DX_VALUES");
+    static readonly CHILDREN_DX_VALUES: unique symbol = Symbol.for("DOMUtils.CHILDREN_DX_VALUES");
 
     static readonly DATEX_UPDATE_TYPE: unique symbol = Symbol.for("DOMUtils.DATEX_UPDATE_TYPE");
+
 
     readonly svgNS = "http://www.w3.org/2000/svg"
 	readonly mathMLNS = "http://www.w3.org/1998/Math/MathML"
@@ -164,6 +169,13 @@ export class DOMUtils {
         if (!(parent instanceof this.context.DocumentFragment) && Datex.Ref.isRef(children) && (children instanceof Array || children instanceof Map || children instanceof Set)) {
             // is iterable ref
             // TODO: support promises
+
+            const ref:Datex.Ref = children instanceof Datex.Ref ? children : Datex.Pointer.getByValue(children)!;
+
+            if (!(<DOMUtils.elWithEventListeners><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES]) 
+                (<DOMUtils.elWithEventListeners><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES] = new Set<Datex.Ref>();
+            (<DOMUtils.elWithEventListeners><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES].add(ref)
+
             const startAnchor = new this.context.Comment("start " + Datex.Pointer.getByValue(children)?.idString())
             const endAnchor = new this.context.Comment("end " + Datex.Pointer.getByValue(children)?.idString())
             parent.append(startAnchor, endAnchor)
@@ -336,9 +348,14 @@ export class DOMUtils {
 
             // bind value (used for datex-over-http updates)
             if (attr == "value" || attr == "checked") {
-                if (!(<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_BINDINGS]) 
-                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_BINDINGS] = new Map<string, Datex.Ref>();
-                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_BINDINGS].set(attr, value)
+                if (!(<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS]) 
+                    (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS] = new Map<string, Datex.Ref>();
+                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS].set(attr, value)
+            }
+            else {
+                if (!(<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES]) 
+                    (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES] = new Map<string, Datex.Ref>();
+                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES].set(attr, value)
             }
      
             // :out attributes
@@ -758,7 +775,7 @@ export class DOMUtils {
 
     getTextNode(content:any) {
         const textNode = this.document.createTextNode("");
-        textNode[DX_VALUE] = content;
+        (textNode as any)[DX_VALUE] = content;
 
         if (content instanceof Datex.Ref) {
             weakAction({textNode}, 

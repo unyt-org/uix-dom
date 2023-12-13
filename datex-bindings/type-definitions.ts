@@ -296,7 +296,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			}
 
 			// special attr bindings (value, checked)
-			for (const [attr, ref] of (<DOMUtils.elWithEventListeners><unknown>val)[DOMUtils.ATTR_BINDINGS]??[]) {
+			for (const [attr, ref] of (<DOMUtils.elWithEventListeners><unknown>val)[DOMUtils.PSEUDO_ATTR_BINDINGS]??[]) {
 				data.attr[attr] = ref;
 			}
 

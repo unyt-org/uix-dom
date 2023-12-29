@@ -200,6 +200,8 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 				domUtils.createElement(type.variation) // create normal Element, no UIX lifecycle
 			);
 
+			// console.warn("cast " +type,el?.innerHTML,assigningPtrId,val)
+
 			// set attrs, style, content from object
 			if (typeof val == "object" && Object.getPrototypeOf(val) === Object.prototype) {
 				

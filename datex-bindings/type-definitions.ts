@@ -222,6 +222,12 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 						// only update new content
 						if (existingElement) {
 							const currentChildNodes = [...existingElement.childNodes as Iterable<Node>];
+
+							// skip overriding content for frontend slot (TODO: better solution?)
+							if (el.tagName.toLowerCase() == "frontend-slot") {
+								continue;
+							}
+
 							let i = 0;
 							for (const child of (value instanceof Array ? value : [value])) {
 								let currentChild:any = currentChildNodes[i];

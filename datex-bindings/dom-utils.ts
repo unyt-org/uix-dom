@@ -763,7 +763,7 @@ export class DOMUtils {
 
     valuesToDOMElement(...values:any[]): Node|DocumentFragment {
         if (values.length == 1) {
-            if (values[0] instanceof this.context.Element || values[0] instanceof this.context.DocumentFragment) return values[0] as Node;
+            if (values[0] instanceof this.context.Element || values[0] instanceof this.context.DocumentFragment || values[0] instanceof this.context.Comment) return values[0] as Node;
             else return this.getTextNode(values[0]);
         }
         else {

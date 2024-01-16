@@ -108,7 +108,7 @@ export const htmlElementAttributes = {
 	input: [alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "valueOut", "valueInitial"],
 	button: ["type", "disabled"],
 	form: ["method", "enctype", "action"],
-	img: [alt, ...src, ...widthAndHeight, "crossorigin", "ismap", "loading", "longdesc", "referrerpolicy", "sizes", "srcset", "usemap"],
+	img: [alt, ...src, ...widthAndHeight, "border", "crossorigin", "ismap", "loading", "longdesc", "referrerpolicy", "sizes", "srcset", "usemap"],
 	template: ["shadowrootmode"],
 	iframe: [...src, "allowtransparency"],
 	details: ["open"],
@@ -118,7 +118,8 @@ export const htmlElementAttributes = {
 	textarea: ["placeholder"],
 	option: ["value", "selected"],
 	select: ["value"],
-	dialog: ["open"]
+	dialog: ["open"],
+	table: ["cellspacing", "cellpadding", "align", "width", "border"]
 } as const satisfies {[key in keyof HTMLElementTagNameMap]?: readonly string[]};
 
 
@@ -202,6 +203,14 @@ export type htmlElementAttributeValues = {
 
 	option: {
 		selected: boolean
+	},
+
+	table: {
+		cellspacing: string,
+		cellpadding: string,
+		align: string,
+		width: string, 
+		border: string
 	}
 }
 

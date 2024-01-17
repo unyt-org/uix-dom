@@ -523,6 +523,11 @@ export class DOMUtils {
             (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.DATEX_UPDATE_TYPE] = val as string;
         }
 
+        // set stylesheet
+        else if (attr == "stylesheet") {
+            element.append(this.createHTMLElement(`<link rel="stylesheet" href="${this.formatAttributeValue(val, root_path)}?scope"/>`))
+        }
+
         // update checkbox checked property (bug?)
         else if (element instanceof this.context.HTMLDialogElement && attr == "open") {
 
@@ -662,9 +667,12 @@ export class DOMUtils {
         }
         else properties = Datex.Ref.collapseValue(properties_object_or_property,true,true) as {[property:string]:Datex.CompatValue<string|number|undefined>};
 
-        for (const [property, value] of Object.entries(properties)) {
-            this.setCSSProperty(element, property, value);
+        if (properties) {
+            for (const [property, value] of Object.entries(properties)) {
+                this.setCSSProperty(element, property, value);
+            }
         }
+
         return element;
     }
 

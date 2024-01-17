@@ -53,11 +53,23 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 		if (set_default_children) setChildren(element, children, shadow_root);
 
 		if (set_default_attributes) {
-			let module = ((<Record<string,unknown>>props)['module'] ?? (<Record<string,unknown>>props)['uix-module']) as string|undefined;
+			let module = ((<Record<string,unknown>>props)['module'] ?? (<Record<string,unknown>>props)['uix-module']) as string|null;
 			// ignore module of is explicitly module===null, otherwise fallback to getCallerFile
 			// TODO: optimize don't call getCallerFile for each nested jsx element, pass on from parent?
 			if (module === undefined) {
-				module = callerModule ?? getCallerInfo()?.[1]?.file!;
+				// module already determined
+				if (callerModule) module = callerModule;
+				// get caller module
+				else {
+					const stack = getCallerInfo();
+					if (stack) {
+						module = (
+							stack[1].name == "jsxs" ? // called via jsxs, skip one more in stack
+								stack[2] : 
+								stack[1]
+							)?.file;
+					}
+				}
 				if (!module) {
 					logger.error("Could not determine location of JSX definition")
 				}

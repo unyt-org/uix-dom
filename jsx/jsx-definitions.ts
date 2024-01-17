@@ -3,7 +3,7 @@ import type { validHTMLElementAttrs, validHTMLElementSpecificAttrs, validSVGElem
 import type { HTMLElement, DocumentFragment } from "../dom/mod.ts";
 import { HTMLElementTagNameMap, SVGElementTagNameMap } from "../dom/deno-dom/src/dom/types/tags.ts";
 
-type DomElement = HTMLElement // TODO: Element?
+type DomElement = Element;// HTMLElement // TODO: Element?
 
 
 type RefOrValueUnion<U> = (U extends any ? Datex.RefOrValue<U> : never)
@@ -47,7 +47,18 @@ declare global {
 		// interface IntrinsicClassAttributes<C extends Component> {}
 
 		type DatexValueObject<T extends Record<string|symbol,unknown>, allowPromises extends boolean = false> = {
-			[key in keyof T]: T[key] extends (...args:unknown[])=>unknown ? T[key] : (T[key] extends boolean ? Datex.RefOrValue<T[key]> : RefOrValueUnion<T[key]>)|(allowPromises extends true ? Promise<(T[key] extends boolean ? Datex.RefOrValue<T[key]> : RefOrValueUnion<T[key]>)> : never)
+			[key in keyof T]: T[key] extends (...args:unknown[])=>unknown ? 
+				T[key] : 
+				(T[key] extends boolean ? 
+					Datex.RefOrValue<T[key]> : 
+					(undefined extends T[key] ?
+						Datex.RefOrValue<T[key]> : 
+						RefOrValueUnion<T[key]>
+					)
+					
+				) | (
+					allowPromises extends true ? Promise<(T[key] extends boolean ? Datex.RefOrValue<T[key]> : RefOrValueUnion<T[key]>)> : never
+				)
 		}
 		
 		type IntrinsicElements = 

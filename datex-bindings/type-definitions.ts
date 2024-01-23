@@ -174,6 +174,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 	 */
 	function replaceChildrenInOrder(parent: Element | DocumentFragment, currentChildNodes: Node[], newChildren: any[], i = 0) {
 
+
 		// end of new children reached
 		if (i >= newChildren.length) {
 			return;
@@ -318,7 +319,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			}
 
 			// special attr bindings (value, checked)
-			for (const [attr, ref] of (<DOMUtils.elWithEventListeners><unknown>val)[DOMUtils.PSEUDO_ATTR_BINDINGS]??[]) {
+			for (const [attr, ref] of (<DOMUtils.elWithUIXAttributes><unknown>val)[DOMUtils.PSEUDO_ATTR_BINDINGS]??[]) {
 				data.attr[attr] = ref;
 			}
 

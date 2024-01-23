@@ -18,7 +18,7 @@ export type appendableContent = appendableContentBase|Promise<appendableContentB
 
 // deno-lint-ignore no-namespace
 export namespace DOMUtils {
-    export type elWithEventListeners = Element & {
+    export type elWithUIXAttributes = Element & {
         [DOMUtils.EVENT_LISTENERS]:Map<keyof HTMLElementEventMap, Set<[(...args:any)=>any, boolean]>>
         [DOMUtils.PSEUDO_ATTR_BINDINGS]:Map<string, Datex.Ref>,
         [DOMUtils.ATTR_DX_VALUES]:Map<string, Datex.Ref>,
@@ -35,7 +35,7 @@ export class DOMUtils {
     static readonly CHILDREN_DX_VALUES: unique symbol = Symbol.for("DOMUtils.CHILDREN_DX_VALUES");
 
     static readonly DATEX_UPDATE_TYPE: unique symbol = Symbol.for("DOMUtils.DATEX_UPDATE_TYPE");
-
+    static readonly PLACEHOLDER_CONTENT: unique symbol = Symbol.for("DOMUtils.PLACEHOLDER_CONTENT");
 
     readonly svgNS = "http://www.w3.org/2000/svg"
 	readonly mathMLNS = "http://www.w3.org/1998/Math/MathML"
@@ -173,9 +173,9 @@ export class DOMUtils {
 
             const ref:Datex.Ref = children instanceof Datex.Ref ? children : Datex.Pointer.getByValue(children)!;
 
-            if (!(<DOMUtils.elWithEventListeners><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES]) 
-                (<DOMUtils.elWithEventListeners><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES] = new Set<Datex.Ref>();
-            (<DOMUtils.elWithEventListeners><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES].add(ref)
+            if (!(<DOMUtils.elWithUIXAttributes><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES]) 
+                (<DOMUtils.elWithUIXAttributes><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES] = new Set<Datex.Ref>();
+            (<DOMUtils.elWithUIXAttributes><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES].add(ref)
 
             const startAnchor = new this.context.Comment("start " + Datex.Pointer.getByValue(children)?.idString())
             const endAnchor = new this.context.Comment("end " + Datex.Pointer.getByValue(children)?.idString())
@@ -324,14 +324,14 @@ export class DOMUtils {
 
         // bind value (used for datex-over-http updates)
         if (attr == "value" || attr == "checked") {
-            if (!(<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS]) 
-                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS] = new Map<string, Datex.Ref>();
-            (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS].set(attr, value)
+            if (!(<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS]) 
+                (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS] = new Map<string, Datex.Ref>();
+            (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS].set(attr, value)
         }
         else {
-            if (!(<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES]) 
-                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES] = new Map<string, Datex.Ref>();
-            (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES].set(attr, value)
+            if (!(<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_DX_VALUES]) 
+                (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_DX_VALUES] = new Map<string, Datex.Ref>();
+            (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_DX_VALUES].set(attr, value)
         }
  
         // :out attributes
@@ -493,7 +493,7 @@ export class DOMUtils {
 
         // set datex-update
         else if (attr == "datex-update") {
-            (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.DATEX_UPDATE_TYPE] = val as string;
+            (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.DATEX_UPDATE_TYPE] = val as string;
         }
 
         // set stylesheet
@@ -576,13 +576,13 @@ export class DOMUtils {
                     const eventName = <keyof HTMLElementEventMap & string>attr.replace("on","").toLowerCase();
                     element.addEventListener(eventName, handler as any);
                     // save in [DOMUtils.EVENT_LISTENERS]
-                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, [Set<Function>, boolean]>();
+                    if (!(<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, [Set<Function>, boolean]>();
                     // clear previous standalone listeners for this event
-                    for (const [listener, isStandalone] of (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].get(eventName) ?? []) {
+                    for (const [listener, isStandalone] of (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].get(eventName) ?? []) {
                         if (isStandalone) element.removeEventListener(eventName, listener as any);
                     }
-                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].has(eventName)) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].set(eventName, new Set());
-                    (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].get(eventName)!.add([handler, false]);
+                    if (!(<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].has(eventName)) (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].set(eventName, new Set());
+                    (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].get(eventName)!.add([handler, false]);
                 }
                 else throw new Error("Cannot set event listener for element attribute '"+attr+"'")
             }
@@ -599,9 +599,9 @@ export class DOMUtils {
                         Routing.renderEntrypoint(handler)
                     });
                     // save in [DOMUtils.EVENT_LISTENERS]
-                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, [Set<Function>, boolean]>();
-                    if (!(<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].has(eventName)) (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].set(eventName, new Set());
-                    (<DOMUtils.elWithEventListeners>element)[DOMUtils.EVENT_LISTENERS].get(eventName)!.add([handler, false]);
+                    if (!(<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, [Set<Function>, boolean]>();
+                    if (!(<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].has(eventName)) (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].set(eventName, new Set());
+                    (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].get(eventName)!.add([handler, false]);
                 }
                 // default "action" (path)
                 else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
@@ -670,7 +670,7 @@ export class DOMUtils {
         else {
             Datex.Ref.observeAndInit(value, (v,k,t) => {
                 if (property == "display" && typeof v == "boolean") {
-                    v = v ? "revert" : "none";
+                    v = v ? (globalThis.CSS?.supports("display: revert-layer") ? "revert-layer" : "revert") : "none";
                 }
 
                 if (v == undefined) {
@@ -764,8 +764,10 @@ export class DOMUtils {
         // is function
         if (typeof value == "function") {
             if (client_type == "deno") {
-                newNode = document.createElement("div");
-                newNode!.innerHTML="placheolder";
+                newNode = document.createElement("uix-placeholder");
+                if ((value as any)[DOMUtils.PLACEHOLDER_CONTENT]) {
+                    this.append(newNode, (value as any)[DOMUtils.PLACEHOLDER_CONTENT]);
+                }
                 newNode![DX_REPLACE] = value;
             }
             else {
@@ -797,8 +799,7 @@ export class DOMUtils {
                 return node;
             });
 
-            const placeholder = this.document.createElement("div")
-            placeholder.setAttribute("data-async-placeholder", "");
+            const placeholder = this.document.createElement("uix-placeholder")
             newNode = placeholder;
         }
         else if (newNode == undefined) {
@@ -864,10 +865,14 @@ export class DOMUtils {
     }
 
     replaceWith(node: Element, newContent: any, lazy = false) {
+
         const {node: newNode, loadPromise} = this.valueToDOMNode(newContent)
+
         // only replace when loaded
         if (lazy && loadPromise) {
-            return loadPromise.then(v => node.replaceWith(v))
+            return loadPromise.then(v => {
+                node.replaceWith(v)
+            })
         }
         // replace immediately
         else node.replaceWith(newNode);

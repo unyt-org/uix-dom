@@ -167,6 +167,42 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 		}
 	}
 
+	/**
+	 * Replaces existing children of an element with new children.
+	 * If there are no lazy children, everything is replaced immediately.
+	 * Otherwise the replacement happens asynchronously.
+	 */
+	function replaceChildrenInOrder(parent: Element | DocumentFragment, currentChildNodes: Node[], newChildren: any[], i = 0) {
+
+		// end of new children reached
+		if (i >= newChildren.length) {
+			return;
+		}
+
+		let currentChild:any = currentChildNodes[i];
+		if (currentChild instanceof context.Text) currentChild = currentChild.textContent;
+		const child = newChildren[i];
+
+		// child does no exist, just append
+		if (currentChild === undefined) {
+			domUtils.append(parent, child);
+			replaceChildrenInOrder(parent, currentChildNodes, newChildren, i+1);
+		}
+		// different child, replace
+		else if (child !== currentChild) {
+			const result = domUtils.replaceWith(currentChildNodes[i], child, true);
+			// only continue with next child when replacement is done
+			if (result instanceof Promise) 
+				result.then(() => replaceChildrenInOrder(parent, currentChildNodes, newChildren, i+1))
+			// otherwise continue immediately
+			else replaceChildrenInOrder(parent, currentChildNodes, newChildren, i+1);
+		}
+		// same child, ignore
+		else {
+			replaceChildrenInOrder(parent, currentChildNodes, newChildren, i+1);
+		}
+	}
+
 	// handles html/x and also casts from uix/x
 
 
@@ -219,7 +255,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 						}
 					}
 					else if (prop=="content") {
-						// only update new content
+						// only update new content (lazy hydration)
 						if (existingElement) {
 							const currentChildNodes = [...existingElement.childNodes as Iterable<Node>];
 
@@ -228,28 +264,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 								continue;
 							}
 
-							let i = 0;
-							for (const child of (value instanceof Array ? value : [value])) {
-
-								let currentChild:any = currentChildNodes[i];
-								if (currentChild instanceof context.Text) currentChild = currentChild.textContent;
-
-								// child does no exist, just append
-								if (currentChildNodes[i] === undefined) {
-									domUtils.append(el, child);
-								}
-								// different child, replace
-								else if (child !== currentChild) {
-									if (child instanceof LazyPointer) {
-										const previous = currentChildNodes[i]
-										child.onLoad((val) => {
-											domUtils.replaceWith(previous, val);
-										})
-									}
-									else domUtils.replaceWith(currentChildNodes[i], child)
-								}
-								i++;
-							}
+							replaceChildrenInOrder(el, currentChildNodes, value instanceof Array ? value : [value])
 						}
 						// append content
 						else {

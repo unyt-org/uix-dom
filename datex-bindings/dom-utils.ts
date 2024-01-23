@@ -3,7 +3,7 @@ import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAtt
 import { type Element, type Text, type DocumentFragment, type HTMLTemplateElement, type HTMLElement, type SVGElement, type MathMLElement, type Node, type Comment, type Document, type HTMLInputElement, HTMLFormElement } from "../dom/mod.ts";
 
 import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
-import { DX_VALUE, DX_REPLACE, logger } from "datex-core-legacy/datex_all.ts";
+import { DX_VALUE, DX_REPLACE, logger, PointerProperty } from "datex-core-legacy/datex_all.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
 import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
@@ -273,7 +273,7 @@ export class DOMUtils {
         return parent;
     }
 
-	setElementAttribute<T extends Element>(element:T, attr:string, value:Datex.RefOrValue<unknown>|((...args:unknown[])=>unknown)|{[JSX_INSERT_STRING]:true, val:string}, rootPath?:string|URL):boolean|Promise<boolean> {
+	setElementAttribute<T extends Element>(element:T, attr:string, value:Datex.RefOrValue<unknown>|LazyPointer<unknown>|((...args:unknown[])=>unknown)|{[JSX_INSERT_STRING]:true, val:string}, rootPath?:string|URL):boolean|Promise<boolean> {
         
         // valid attribute name?
         // not an HTML attribute
@@ -294,117 +294,133 @@ export class DOMUtils {
         if (value instanceof Promise) return value.then(v=>this.setElementAttribute(element, attr, v, rootPath))
 
         if (!element) return false;
-        // DatexValue
         value = Datex.Pointer.pointerifyValue(value)
-        if (value instanceof Datex.Ref) {
 
-            const isInputElement = element.tagName.toLowerCase() === "input";
-            const isSelectElement = element.tagName.toLowerCase() === "select";
-
-            const type = Datex.Type.ofValue(value);
-
-            // bind value (used for datex-over-http updates)
-            if (attr == "value" || attr == "checked") {
-                if (!(<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS]) 
-                    (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS] = new Map<string, Datex.Ref>();
-                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS].set(attr, value)
-            }
-            else {
-                if (!(<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES]) 
-                    (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES] = new Map<string, Datex.Ref>();
-                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES].set(attr, value)
-            }
-     
-            // :out attributes
-            if ((isSelectElement || isInputElement) && (attr == "value:out" || attr == "value")) {
-
-                const event = isSelectElement ? 'change' : 'input';
-
-                const handleSetVal = async (val:any) => {
-                    try {
-                        await (value as Datex.Ref).setVal(val)
-                        element.setCustomValidity("")
-                        element.reportValidity()
-                    }
-                    catch (e) {
-                        const message = e?.message ?? e?.toString()
-                        element.setCustomValidity(message)
-                        element.reportValidity()
-                    }
-                }
-
-                if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => handleSetVal(element.value))
-                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => handleSetVal(Number(element.value)))
-                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => handleSetVal(BigInt(element.value)))
-                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(Boolean(element.value)))
-                else if (type.matchesType(Datex.Type.std.void)) {console.warn("setting value attribute to void", element)}
-                else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
-                
-                // TODO: allow duplex updates for "value"
-                if (attr == "value") {
-                    const valid = this.setAttribute(element, attr, value.val, rootPath)
-                    const val = value;
-                    if (valid) {
-                        weakAction({element}, 
-                            ({element}) => {
-                                use (this, logger, val, attr, rootPath)
-                                const handler = (v: any) => {
-                                    const deref = element.deref();
-                                    if (!deref) {
-                                        logger.warn("Undetected garbage collection (uix-w0001)");
-                                        return;
-                                    }
-                                    this.setAttribute(deref, attr, v, rootPath);
-                                }
-                                val.observe(handler);
-                                return handler;
-                            }, 
-                            (handler) => use(val) && val.unobserve(handler)
-                        );
-                    }
-                    return valid;
-                }
-
-                return true;
-            }
-
-            // checked attribute
-            if (isInputElement && element.getAttribute("type") === "checkbox" && attr == "checked") {
-                if (!(element instanceof this.context.HTMLInputElement)) throw new Error("the 'checked' attribute is only supported for <input> elements");
-
-                if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener('change', () => value.val = element.checked)
-                else if (type.matchesType(Datex.Type.std.void)) {console.warn("setting checked attribute to void")}
-                else throw new Error("The type "+type+" is not supported for the 'checked' attribute of the <input> element");
-            }
-
-            // default attributes
-
-            const valid = this.setAttribute(element, attr, value.val, rootPath)
-            if (valid) {
-                const val = value;
-                
-                weakAction({element}, 
-                    ({element}) => {
-                        use (this, attr, rootPath, logger, val);
-
-                        const handler = (v:any) => {
-                            const deref = element.deref();
-                            if (!deref) {
-                                logger.warn("Undetected garbage collection (uix-w0001)");
-                                return;
-                            }
-                            this.setAttribute(deref, attr, v, rootPath);
-                        };
-                        val.observe(handler);
-                        return handler;
-                    },
-                    (handler) => use(val) && val.unobserve(handler)
-                );
-            }
-            return valid;
+        // LazyPointer or lazy pointer property
+        if (
+            value instanceof LazyPointer ||
+            (value instanceof PointerProperty && value.lazy_pointer)
+        ) {
+            value.onLoad(() => {
+                this.setElementAttribute(element, attr, value, rootPath)
+            })
+            return true;
         }
+
+        // Datex Ref
+        else if (value instanceof Datex.Ref) {
+            return this.setLiveAttribute(element, attr, value, rootPath);
+        }
+
         // default
         else return this.setAttribute(element, attr, value, rootPath)
+    }
+
+    private setLiveAttribute<T extends Element>(element:T, attr:string, value:Datex.RefLike<unknown>, rootPath?:string|URL):boolean {
+        const isInputElement = element.tagName.toLowerCase() === "input";
+        const isSelectElement = element.tagName.toLowerCase() === "select";
+
+        const type = Datex.Type.ofValue(value);
+
+        // bind value (used for datex-over-http updates)
+        if (attr == "value" || attr == "checked") {
+            if (!(<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS]) 
+                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS] = new Map<string, Datex.Ref>();
+            (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS].set(attr, value)
+        }
+        else {
+            if (!(<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES]) 
+                (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES] = new Map<string, Datex.Ref>();
+            (<DOMUtils.elWithEventListeners><unknown>element)[DOMUtils.ATTR_DX_VALUES].set(attr, value)
+        }
+ 
+        // :out attributes
+        if ((isSelectElement || isInputElement) && (attr == "value:out" || attr == "value")) {
+
+            const event = isSelectElement ? 'change' : 'input';
+
+            const handleSetVal = async (val:any) => {
+                try {
+                    await (value as Datex.Ref).setVal(val)
+                    element.setCustomValidity("")
+                    element.reportValidity()
+                }
+                catch (e) {
+                    const message = e?.message ?? e?.toString()
+                    element.setCustomValidity(message)
+                    element.reportValidity()
+                }
+            }
+
+            if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => handleSetVal(element.value))
+            else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => handleSetVal(Number(element.value)))
+            else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => handleSetVal(BigInt(element.value)))
+            else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(Boolean(element.value)))
+            else if (type.matchesType(Datex.Type.std.void) || type.matchesType(Datex.Type.std.null)) {console.warn("setting value attribute to " + type, element)}
+            else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
+            
+            // TODO: allow duplex updates for "value"
+            if (attr == "value") {
+                const valid = this.setAttribute(element, attr, value.val, rootPath)
+                const val = value;
+                if (valid) {
+                    weakAction({element}, 
+                        ({element}) => {
+                            use (this, logger, val, attr, rootPath)
+                            const handler = (v: any) => {
+                                const deref = element.deref();
+                                if (!deref) {
+                                    logger.warn("Undetected garbage collection (uix-w0001)");
+                                    return;
+                                }
+                                this.setAttribute(deref, attr, v, rootPath);
+                            }
+                            val.observe(handler);
+                            return handler;
+                        }, 
+                        (handler) => use(val) && val.unobserve(handler)
+                    );
+                }
+                return valid;
+            }
+
+            return true;
+        }
+
+        // checked attribute
+        if (isInputElement && element.getAttribute("type") === "checkbox" && attr == "checked") {
+            if (!(element instanceof this.context.HTMLInputElement)) throw new Error("the 'checked' attribute is only supported for <input> elements");
+
+            if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener('change', () => value.val = element.checked)
+            else if (type.matchesType(Datex.Type.std.void)) {console.warn("setting checked attribute to void")}
+            else throw new Error("The type "+type+" is not supported for the 'checked' attribute of the <input> element");
+        }
+
+        // default attributes
+
+        const valid = this.setAttribute(element, attr, value.val, rootPath)
+        if (valid) {
+            const val = value;
+            
+            weakAction({element}, 
+                ({element}) => {
+                    use (this, attr, rootPath, logger, val);
+
+                    const handler = (v:any) => {
+                        const deref = element.deref();
+                        if (!deref) {
+                            logger.warn("Undetected garbage collection (uix-w0001)");
+                            return;
+                        }
+                        this.setAttribute(deref, attr, v, rootPath);
+                    };
+                    val.observe(handler);
+                    return handler;
+                },
+                (handler) => use(val) && val.unobserve(handler)
+            );
+        }
+        return valid;
     }
 
     private isNormalFunction(fnSrc:string) {
@@ -743,7 +759,7 @@ export class DOMUtils {
     valueToDOMNode(value: unknown) {
 
         let loadPromise: Promise<Node>|undefined
-        let newNode: any = value
+        let newNode: any;
 
         // is function
         if (typeof value == "function") {
@@ -753,16 +769,25 @@ export class DOMUtils {
                 newNode![DX_REPLACE] = value;
             }
             else {
-                console.log("fn",value)
-                newNode = value()
+                if (value instanceof JSTransferableFunction) {
+                    // waits until lazy dependencies are loaded
+                    value = value.callLazy()
+                }
+                else {
+                    value = value()
+                }
             }
         }
 
-        // wait for lazyPointer (convert to promise)
-        if (value instanceof LazyPointer) {
+        // wait for lazyPointer or lazy pointer property (convert to promise)
+        if (
+            value instanceof LazyPointer ||
+            (value instanceof Datex.PointerProperty && value.lazy_pointer)
+        ) {
             const lazyPtr = value;
             value = new Promise(resolve => lazyPtr.onLoad(v => resolve(v)));
         }
+
 
         // wait for promise
         if (value instanceof Promise) {
@@ -775,6 +800,9 @@ export class DOMUtils {
             const placeholder = this.document.createElement("div")
             placeholder.setAttribute("data-async-placeholder", "");
             newNode = placeholder;
+        }
+        else if (newNode == undefined) {
+            newNode = value;
         }
 
         // unsupported value - create text node
@@ -792,28 +820,20 @@ export class DOMUtils {
         const textNode = this.document.createTextNode("");
         (textNode as any)[DX_VALUE] = content;
 
-        if (content instanceof Datex.Ref) {
-            weakAction({textNode}, 
-                ({textNode}) => {
-                    use (content, logger, Datex);
-                    const handler = (v:any) => {
-                        const deref = textNode.deref();
-                        if (!deref) {
-                            logger.warn("Undetected garbage collection (uix-w0001)");
-                            return;
-                        }
-                        deref.textContent = v!=undefined ? (<any>v).toString() : ''
-                    };
-                    Datex.Ref.observeAndInit(content, handler);
-                    return handler;
-                }, 
-                (handler) => {
-                    use(content, Datex);
-                    Datex.Ref.unobserve(content, handler)
-                }
-            );   
+        // lazy pointer or lazy pointer property
+        if (
+            content instanceof LazyPointer || 
+            (content instanceof PointerProperty && content.lazy_pointer)
+        ) {
+            content.onLoad(() => {
+                this.bindTextNode(textNode, content)
+            })
+        }
+        // ref
+        else if (content instanceof Datex.Ref) {
+            this.bindTextNode(textNode, content)
         }     
-
+       
         else {
             textNode.textContent = content!=undefined ? (<any>content).toString() : ''
         }
@@ -821,11 +841,36 @@ export class DOMUtils {
         return textNode;
     }
 
-    replaceWith(node: Element, newContent: any) {
-        const {node: newNode} = this.valueToDOMNode(newContent)
-        console.log("re",newNode,newContent)
+    bindTextNode(textNode: Text, ref:Datex.RefLike<unknown>) {
+        weakAction({textNode}, 
+            ({textNode}) => {
+                use (ref, logger, Datex);
+                const handler = (v:any) => {
+                    const deref = textNode.deref();
+                    if (!deref) {
+                        logger.warn("Undetected garbage collection (uix-w0001)");
+                        return;
+                    }
+                    deref.textContent = v!=undefined ? (<any>v).toString() : ''
+                };
+                Datex.Ref.observeAndInit(ref, handler);
+                return handler;
+            }, 
+            (handler) => {
+                use(ref, Datex);
+                Datex.Ref.unobserve(ref, handler)
+            }
+        );   
+    }
 
-        node.replaceWith(newNode);
+    replaceWith(node: Element, newContent: any, lazy = false) {
+        const {node: newNode, loadPromise} = this.valueToDOMNode(newContent)
+        // only replace when loaded
+        if (lazy && loadPromise) {
+            return loadPromise.then(v => node.replaceWith(v))
+        }
+        // replace immediately
+        else node.replaceWith(newNode);
     }
 
     /**

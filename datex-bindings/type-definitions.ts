@@ -230,6 +230,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 
 							let i = 0;
 							for (const child of (value instanceof Array ? value : [value])) {
+
 								let currentChild:any = currentChildNodes[i];
 								if (currentChild instanceof context.Text) currentChild = currentChild.textContent;
 

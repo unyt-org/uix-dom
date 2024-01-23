@@ -3,7 +3,7 @@ import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAtt
 import { type Element, type Text, type DocumentFragment, type HTMLTemplateElement, type HTMLElement, type SVGElement, type MathMLElement, type Node, type Comment, type Document, type HTMLInputElement, HTMLFormElement } from "../dom/mod.ts";
 
 import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
-import { DX_VALUE, Ref, logger } from "datex-core-legacy/datex_all.ts";
+import { DX_VALUE, DX_REPLACE, logger } from "datex-core-legacy/datex_all.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
 import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
@@ -162,6 +162,7 @@ export class DOMUtils {
      * @returns 
      */
     append<T extends Element|DocumentFragment>(parent:T, children:appendableContent|appendableContent[]):T | undefined {
+
         // @ts-ignore extract children ref iterable from DocumentFragment
         if (children instanceof this.context.DocumentFragment && children._uix_children) children = children._uix_children
 
@@ -182,7 +183,7 @@ export class DOMUtils {
 
             const iterableHandler = new IterableHandler<appendableContent, Node>(children as appendableContent[], {
                 map: (v,k) => {
-                    const el = this.valuesToDOMElement(v);
+                    const {node: el} = this.valueToDOMNode(v);
                     return el;
                 },
                 onEntryRemoved: (v,k) => {
@@ -256,65 +257,21 @@ export class DOMUtils {
     }
 
 
-    _append<T extends Element|DocumentFragment>(parent:T, children:appendableContent[], oldChildren?: Node[], onAppend?: ((list: Node[]) => void)):T {
+    _append<T extends Element|DocumentFragment>(parent:T, children:appendableContent[]):T {
         // use content if parent is <template>
         const element = parent instanceof this.context.HTMLTemplateElement ? parent.content : parent;
 
-        let lastAnchor: Node | undefined = oldChildren?.at(-1);
-
-        const lastChildren: Node[] = [];
-        const loadingPromised: Promise<void>[] = [];
         for (let child of children) {
             child = (child as any)?.[JSX_INSERT_STRING] ? (child as any).val : child; // collapse safely injected strings
 
-            // wait for lazyPointer (convert to promise)
-            if (child instanceof LazyPointer) {
-                const lazyPtr = child;
-                child = new Promise(resolve => lazyPtr.onLoad(v => resolve(v)));
-            }
+            const {node} = this.valueToDOMNode(child);
 
-            // wait for promise
-            if (child instanceof Promise) {
-                const placeholder = this.document.createElement("div")
-                placeholder.setAttribute("data-async-placeholder", "");
-                if (!lastAnchor)
-                    element.append(placeholder);
-                else {
-                    element.insertBefore(placeholder, lastAnchor.nextSibling);
-                    lastAnchor = placeholder;
-                }
-                loadingPromised.push(child);
-                child.then(v=>{
-                    const dom = this.valuesToDOMElement(v);
-                    // set shadow root or replace
-                    if (!this.appendElementOrShadowRoot(element, dom, false, false, e => (lastChildren.push(...e)))) placeholder.replaceWith(dom)
-                })
-            } 
-            
-            else {
-                const dom = this.valuesToDOMElement(child);
-
-                // set shadow root or append
-                if (lastAnchor) {
-                    this.appendElementOrShadowRoot(lastAnchor, dom, undefined, true, (e) => (lastChildren.push(...e)));
-                    lastAnchor = dom;
-                }
-                else 
-                this.appendElementOrShadowRoot(element, dom, undefined, false, (e) => (lastChildren.push(...e)));
-            }
+            // set shadow root or append
+            this.appendElementOrShadowRoot(element, node);
         }
 
-        // remove old children 
-        for (const child of oldChildren ?? [])
-            parent.removeChild(child);
-
-        Promise.all(loadingPromised).then(()=>{
-            onAppend?.(lastChildren);
-        });
         return parent;
     }
-
-
 
 	setElementAttribute<T extends Element>(element:T, attr:string, value:Datex.RefOrValue<unknown>|((...args:unknown[])=>unknown)|{[JSX_INSERT_STRING]:true, val:string}, rootPath?:string|URL):boolean|Promise<boolean> {
         
@@ -382,7 +339,7 @@ export class DOMUtils {
                 else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(Boolean(element.value)))
                 else if (type.matchesType(Datex.Type.std.void)) {console.warn("setting value attribute to void", element)}
                 else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
-
+                
                 // TODO: allow duplex updates for "value"
                 if (attr == "value") {
                     const valid = this.setAttribute(element, attr, value.val, rootPath)
@@ -770,14 +727,64 @@ export class DOMUtils {
 
 
     valuesToDOMElement(...values:any[]): Node|DocumentFragment {
+        
         if (values.length == 1) {
-            if (values[0] instanceof this.context.Element || values[0] instanceof this.context.DocumentFragment || values[0] instanceof this.context.Comment) return values[0] as Node;
-            else return this.getTextNode(values[0]);
+            return this.valueToDOMNode(values[0]).node;
         }
         else {
             const fragment = new this.context.DocumentFragment();
-            values.forEach(c=>this.append(fragment, c))
+            values
+                .map(v => this.valueToDOMNode(v).node)
+                .forEach(c=>this.append(fragment, c))
             return fragment;
+        }
+    }
+
+    valueToDOMNode(value: unknown) {
+
+        let loadPromise: Promise<Node>|undefined
+        let newNode: any = value
+
+        // is function
+        if (typeof value == "function") {
+            if (client_type == "deno") {
+                newNode = document.createElement("div");
+                newNode!.innerHTML="placheolder";
+                newNode![DX_REPLACE] = value;
+            }
+            else {
+                console.log("fn",value)
+                newNode = value()
+            }
+        }
+
+        // wait for lazyPointer (convert to promise)
+        if (value instanceof LazyPointer) {
+            const lazyPtr = value;
+            value = new Promise(resolve => lazyPtr.onLoad(v => resolve(v)));
+        }
+
+        // wait for promise
+        if (value instanceof Promise) {
+            loadPromise = value.then(v=>{
+                const node = this.valuesToDOMElement(v);
+                placeholder.replaceWith(node)
+                return node;
+            });
+
+            const placeholder = this.document.createElement("div")
+            placeholder.setAttribute("data-async-placeholder", "");
+            newNode = placeholder;
+        }
+
+        // unsupported value - create text node
+        if (!(newNode instanceof this.context.Element || newNode instanceof this.context.DocumentFragment || newNode instanceof this.context.Comment)) {
+            newNode = this.getTextNode(newNode);
+        }
+
+        return {
+            node: newNode,
+            loadPromise
         }
     }
 
@@ -815,7 +822,9 @@ export class DOMUtils {
     }
 
     replaceWith(node: Element, newContent: any) {
-        const newNode = this.valuesToDOMElement(newContent)
+        const {node: newNode} = this.valueToDOMNode(newContent)
+        console.log("re",newNode,newContent)
+
         node.replaceWith(newNode);
     }
 

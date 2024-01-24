@@ -34,7 +34,7 @@ export const defaultElementAttributes = [
 	"accesskey", "class", "contenteditable", "contextmenu", "dir", "draggable", "dropzone", "hidden", "id", "lang", "spellcheck", "style", "tabindex", "title",
 	"role", "name", "slot",
 	// uix specific
-	"uix-module", 
+	"uix-module", "stylesheet",
 	"datex-pointer", "datex-update",
 	"shadow-root", "display"
 ] as const;
@@ -43,6 +43,7 @@ export const defaultElementAttributes = [
 // custom attribute values for default attributes (default: string)
 type customDefaultAttributeValues = {
 	"uix-module": string|URL|null,
+	"stylesheet": string|URL|null,
 	"shadow-root": boolean|'open'|'closed',
 	"datex-pointer": boolean,
 	"datex-update": "onchange"|"onsubmit"
@@ -97,15 +98,13 @@ type MediaStream = any; // TODO:
 /** list of all allowed attributes for HTML elements */
 export const htmlElementAttributes = {
 
-	// TODO replace valueOut, ... with value:out
-
 	a: [...href, "target"],
 	link: [...href, "rel"],
 
 	script: [...src, "type"],
 
 	progress: ["value", "max", "min"],
-	input: [alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "valueOut", "valueInitial"],
+	input: [alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out"],
 	button: ["type", "disabled"],
 	form: ["method", "enctype", "action"],
 	img: [alt, ...src, ...widthAndHeight, "border", "crossorigin", "ismap", "loading", "longdesc", "referrerpolicy", "sizes", "srcset", "usemap"],

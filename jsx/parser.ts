@@ -12,6 +12,7 @@ const logger = new Logger("JSX Parser");
 
 export const SET_DEFAULT_ATTRIBUTES: unique symbol = Symbol("SET_DEFAULT_ATTRIBUTES");
 export const SET_DEFAULT_CHILDREN: unique symbol = Symbol("SET_DEFAULT_CHILDREN");
+export const IS_TEMPLATE: unique symbol = Symbol("IS_TEMPLATE");
 
 
 export function escapeString(string:string) {
@@ -53,11 +54,23 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 		if (set_default_children) setChildren(element, children, shadow_root);
 
 		if (set_default_attributes) {
-			let module = ((<Record<string,unknown>>props)['module'] ?? (<Record<string,unknown>>props)['uix-module']) as string|undefined;
+			let module = ((<Record<string,unknown>>props)['module'] ?? (<Record<string,unknown>>props)['uix-module']) as string|null;
 			// ignore module of is explicitly module===null, otherwise fallback to getCallerFile
 			// TODO: optimize don't call getCallerFile for each nested jsx element, pass on from parent?
 			if (module === undefined) {
-				module = callerModule ?? getCallerInfo()?.[1]?.file!;
+				// module already determined
+				if (callerModule) module = callerModule;
+				// get caller module
+				else {
+					const stack = getCallerInfo();
+					if (stack) {
+						module = (
+							stack[1].name == "jsxs" ? // called via jsxs, skip one more in stack
+								stack[2] : 
+								stack[1]
+							)?.file;
+					}
+				}
 				if (!module) {
 					logger.error("Could not determine location of JSX definition")
 				}
@@ -87,9 +100,18 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 	function parseJSX(type: string | typeof Element | typeof DocumentFragment | ((...args:unknown[])=>Element|DocumentFragment), params: Record<string,unknown>, isJSXS = false): Element {
 
 		Datex.Ref.freezeCapturing = true;
+		const isTemplate = (type as any)[IS_TEMPLATE] ?? false;
+		const isComponent = typeof type == "function" && (context.HTMLElement.isPrototypeOf(type) || type === context.DocumentFragment || context.DocumentFragment.isPrototypeOf(type))
 
 		let element:Element;
-		if ('children' in params && !(params.children instanceof Array)) params.children = [params.children];
+
+		// normalize children if template/blankTemplate or component - not for plain functions
+		if (isTemplate || isComponent) {
+			// always convert children prop to array
+			if ('children' in params && !(params.children instanceof Array)) params.children = [params.children];
+			// always set children prop to empty array if not defined
+			if (!('children' in params)) params.children = [];
+		}
 		const { children = [], ...props } = params as Record<string,unknown> & {children:JSX.singleChild[]}
 	
 		// _debug property to debug jsx
@@ -114,7 +136,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 		if (typeof type === 'function') {
 	
 			// class component
-			if (context.HTMLElement.isPrototypeOf(type) || type === context.DocumentFragment || context.DocumentFragment.isPrototypeOf(type)) {
+			if (isComponent) {
 				set_default_children = (type as any)[SET_DEFAULT_CHILDREN] ?? true;
 				set_default_attributes = (type as any)[SET_DEFAULT_ATTRIBUTES] ?? true;
 				if (set_default_children) delete params.children;

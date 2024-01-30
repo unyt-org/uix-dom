@@ -118,7 +118,8 @@ export const htmlElementAttributes = {
 	option: ["value", "selected"],
 	select: ["value"],
 	dialog: ["open"],
-	table: ["cellspacing", "cellpadding", "align", "width", "border"]
+	table: ["cellspacing", "cellpadding", "align", "width", "border"],
+	meta: ["content"]
 } as const satisfies {[key in keyof HTMLElementTagNameMap]?: readonly string[]};
 
 

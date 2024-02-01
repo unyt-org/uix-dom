@@ -2,6 +2,7 @@ import type { Datex } from "datex-core-legacy/datex.ts";
 import type { validHTMLElementAttrs, validHTMLElementSpecificAttrs, validSVGElementSpecificAttrs } from "../attributes.ts";
 import type { HTMLElement, DocumentFragment } from "../dom/mod.ts";
 import { HTMLElementTagNameMap, SVGElementTagNameMap } from "../dom/deno-dom/src/dom/types/tags.ts";
+import type {Element} from "../dom/deno-dom/src/api.ts"
 
 type DomElement = Element;// HTMLElement // TODO: Element?
 
@@ -11,7 +12,7 @@ type RefOrValueUnion<U> = (U extends any ? Datex.RefOrValue<U> : never)
 declare global {
 	namespace JSX {
 		// JSX node definition
-		type Element = DomElement|DocumentFragment
+		type Element = DomElement
 		type ElementType = string|{new(): Element}|((props?:any, propsValues?:any)=>Element)|((props?:any, propsValues?:any)=>Promise<Element>)
 
 		// type ElementClass = typeof Element

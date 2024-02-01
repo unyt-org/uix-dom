@@ -109,7 +109,7 @@ export const htmlElementAttributes = {
 	form: ["method", "enctype", "action"],
 	img: [alt, ...src, ...widthAndHeight, "border", "crossorigin", "ismap", "loading", "longdesc", "referrerpolicy", "sizes", "srcset", "usemap"],
 	template: ["shadowrootmode"],
-	iframe: [...src, "allowtransparency"],
+	iframe: [...src, "allowtransparency", "allow"],
 	details: ["open"],
 	source: [...src, "type"],
 	label: ["for"],

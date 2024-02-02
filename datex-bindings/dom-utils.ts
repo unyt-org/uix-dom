@@ -765,6 +765,7 @@ export class DOMUtils {
         if (typeof value == "function") {
             if (client_type == "deno") {
                 newNode = document.createElement("uix-placeholder");
+                this.addProxy(newNode);
                 if ((value as any)[DOMUtils.PLACEHOLDER_CONTENT]) {
                     this.append(newNode, (value as any)[DOMUtils.PLACEHOLDER_CONTENT]);
                 }

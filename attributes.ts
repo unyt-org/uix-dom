@@ -115,8 +115,8 @@ export const htmlElementAttributes = {
 	label: ["for"],
 	video: [...src, ...widthAndHeight, "autoplay", "controls", "loop", "muted", "poster", "preload", "playsinline"],
 	textarea: ["placeholder"],
-	option: ["value", "selected"],
-	select: ["value"],
+	option: ["value", "selected", "disabled"],
+	select: ["value", "required"],
 	dialog: ["open"],
 	table: ["cellspacing", "cellpadding", "align", "width", "border"],
 	meta: ["content"]
@@ -156,6 +156,7 @@ export type htmlElementAttributeValues = {
 	},
 
 	select: {
+		required: boolean,
 		value: primitive
 	},
 
@@ -206,9 +207,10 @@ export type htmlElementAttributeValues = {
 	},
 
 	option: {
-		selected: boolean
+		selected: boolean,
+		disabled: boolean,
+		required: boolean
 	},
-
 	table: {
 		cellspacing: string,
 		cellpadding: string,

@@ -275,6 +275,9 @@ export class DOMUtils {
 
 	setElementAttribute<T extends Element>(element:T, attr:string, value:Datex.RefOrValue<unknown>|LazyPointer<unknown>|((...args:unknown[])=>unknown)|{[JSX_INSERT_STRING]:true, val:string}, rootPath?:string|URL):boolean|Promise<boolean> {
         
+        // not an element (e.g DocumentFragment)
+        if (!(element instanceof this.context.Element)) return false;
+
         // valid attribute name?
         // not an HTML attribute
         if (!(

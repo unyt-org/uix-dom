@@ -281,8 +281,10 @@ export class DOMUtils {
         // valid attribute name?
         // not an HTML attribute
         if (!(
+            // if one of the following is true, the attribute is added
             attr.startsWith("data-") ||
             attr.startsWith("aria-") ||
+            element.tagName.includes("-") || // is custom element
             defaultElementAttributes.includes(<typeof defaultElementAttributes[number]>attr) || 
             elementEventHandlerAttributes.includes(<typeof elementEventHandlerAttributes[number]>attr) ||
             (<readonly string[]>htmlElementAttributes[<keyof typeof htmlElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof htmlElementAttributes[keyof typeof htmlElementAttributes][number]>attr) ||

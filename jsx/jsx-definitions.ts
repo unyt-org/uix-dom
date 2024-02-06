@@ -70,7 +70,8 @@ declare global {
 			// svg elements
 			& {
 				readonly [key in keyof SVGElementTagNameMap]: _IntrinsicAttributes<HTMLElementTagNameMap[key]> & {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & htmlAttrs<validSVGElementSpecificAttrs<key>, true>
-			} 
+			}
+			& Record<`${string}-${string}`, {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[], [key: string]: unknown}> // allow custom elements
 			// other custom elements
 			& {
 				'shadow-root': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & {mode?:'open'|'closed'}

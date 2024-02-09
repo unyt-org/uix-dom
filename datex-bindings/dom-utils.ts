@@ -284,7 +284,7 @@ export class DOMUtils {
             // if one of the following is true, the attribute is added
             attr.startsWith("data-") ||
             attr.startsWith("aria-") ||
-            (!element.tagName.startsWith("uix-") && element.tagName.includes("-")) || // is custom element, but not a UIX component
+            (!element.tagName.startsWith("UIX-") && element.tagName.includes("-")) || // is custom element, but not a UIX component
             defaultElementAttributes.includes(<typeof defaultElementAttributes[number]>attr) || 
             elementEventHandlerAttributes.includes(<typeof elementEventHandlerAttributes[number]>attr) ||
             (<readonly string[]>htmlElementAttributes[<keyof typeof htmlElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof htmlElementAttributes[keyof typeof htmlElementAttributes][number]>attr) ||

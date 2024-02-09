@@ -104,7 +104,7 @@ export const htmlElementAttributes = {
 	script: [...src, "type"],
 
 	progress: ["value", "max", "min"],
-	input: [alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out"],
+	input: [alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out", "value:in"],
 	button: ["type", "disabled"],
 	form: ["method", "enctype", "action"],
 	img: [alt, ...src, ...widthAndHeight, "border", "crossorigin", "ismap", "loading", "longdesc", "referrerpolicy", "sizes", "srcset", "usemap"],
@@ -153,6 +153,7 @@ export type htmlElementAttributeValues = {
 
 		value: primitive,
 		"value:out": Datex.Pointer,
+		"value:in": Datex.Pointer
 	},
 
 	select: {

@@ -134,8 +134,8 @@ export class DOMUtils {
         // none
         if (text == undefined) element.innerText = '';
 
-        // DatexValue
-        else if (text instanceof Datex.Value) {
+        // Datexv Ref
+        else if (text instanceof Datex.Ref) {
             this.updateElementText.call(element, text.val);
 
             text.observe(this.updateElementText, element);
@@ -284,7 +284,7 @@ export class DOMUtils {
             // if one of the following is true, the attribute is added
             attr.startsWith("data-") ||
             attr.startsWith("aria-") ||
-            element.tagName.includes("-") || // is custom element
+            (!element.tagName.startsWith("uix-") && element.tagName.includes("-")) || // is custom element, but not a UIX component
             defaultElementAttributes.includes(<typeof defaultElementAttributes[number]>attr) || 
             elementEventHandlerAttributes.includes(<typeof elementEventHandlerAttributes[number]>attr) ||
             (<readonly string[]>htmlElementAttributes[<keyof typeof htmlElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof htmlElementAttributes[keyof typeof htmlElementAttributes][number]>attr) ||
@@ -852,13 +852,20 @@ export class DOMUtils {
         weakAction({textNode}, 
             ({textNode}) => {
                 use (ref, logger, Datex);
-                const handler = (v:any) => {
+                const handler = (...args) => {
                     const deref = textNode.deref();
                     if (!deref) {
                         logger.warn("Undetected garbage collection (uix-w0001)");
                         return;
                     }
-                    deref.textContent = v!=undefined ? (<any>v).toString() : ''
+                    try {
+                        const val = ref.val;
+                        deref.textContent = val!=undefined ? (<any>val).toString() : ''
+                    }
+                    catch {
+                        deref.textContent = ""
+                    }
+                    
                 };
                 Datex.Ref.observeAndInit(ref, handler);
                 return handler;

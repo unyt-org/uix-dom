@@ -134,8 +134,8 @@ export class DOMUtils {
         // none
         if (text == undefined) element.innerText = '';
 
-        // DatexValue
-        else if (text instanceof Datex.Value) {
+        // Datexv Ref
+        else if (text instanceof Datex.Ref) {
             this.updateElementText.call(element, text.val);
 
             text.observe(this.updateElementText, element);
@@ -284,7 +284,7 @@ export class DOMUtils {
             // if one of the following is true, the attribute is added
             attr.startsWith("data-") ||
             attr.startsWith("aria-") ||
-            element.tagName.includes("-") || // is custom element
+            (!element.tagName.startsWith("UIX-") && element.tagName.includes("-")) || // is custom element, but not a UIX component
             defaultElementAttributes.includes(<typeof defaultElementAttributes[number]>attr) || 
             elementEventHandlerAttributes.includes(<typeof elementEventHandlerAttributes[number]>attr) ||
             (<readonly string[]>htmlElementAttributes[<keyof typeof htmlElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof htmlElementAttributes[keyof typeof htmlElementAttributes][number]>attr) ||
@@ -340,7 +340,7 @@ export class DOMUtils {
         }
  
         // :out attributes
-        if ((isSelectElement || isInputElement) && (attr == "value:out" || attr == "value")) {
+        if ((isSelectElement || isInputElement) && (attr == "value:out" || attr == "value:in" || attr == "value")) {
 
             const event = isSelectElement ? 'change' : 'input';
 
@@ -357,28 +357,31 @@ export class DOMUtils {
                 }
             }
 
-            if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => handleSetVal(element.value))
-            else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => handleSetVal(Number(element.value)))
-            else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => handleSetVal(BigInt(element.value)))
-            else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(Boolean(element.value)))
-            else if (type.matchesType(Datex.Type.std.void) || type.matchesType(Datex.Type.std.null)) {console.warn("setting value attribute to " + type, element)}
-            else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
-            
-            // TODO: allow duplex updates for "value"
-            if (attr == "value") {
-                const valid = this.setAttribute(element, attr, value.val, rootPath)
+            // out
+            if (attr == "value" || attr == "value:out") {
+                if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => handleSetVal(element.value))
+                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => handleSetVal(Number(element.value)))
+                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => handleSetVal(BigInt(element.value)))
+                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(Boolean(element.value)))
+                else if (type.matchesType(Datex.Type.std.void) || type.matchesType(Datex.Type.std.null)) {console.warn("setting value attribute to " + type, element)}
+                else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
+            }
+         
+            // in
+            if (attr == "value" || attr == "value:in") {
+                const valid = this.setAttribute(element, "value", value.val, rootPath)
                 const val = value;
                 if (valid) {
                     weakAction({element}, 
                         ({element}) => {
-                            use (this, logger, val, attr, rootPath)
+                            use (this, logger, val, rootPath)
                             const handler = (v: any) => {
                                 const deref = element.deref();
                                 if (!deref) {
                                     logger.warn("Undetected garbage collection (uix-w0001)");
                                     return;
                                 }
-                                this.setAttribute(deref, attr, v, rootPath);
+                                this.setAttribute(deref, "value", v, rootPath);
                             }
                             val.observe(handler);
                             return handler;
@@ -852,13 +855,20 @@ export class DOMUtils {
         weakAction({textNode}, 
             ({textNode}) => {
                 use (ref, logger, Datex);
-                const handler = (v:any) => {
+                const handler = (...args) => {
                     const deref = textNode.deref();
                     if (!deref) {
                         logger.warn("Undetected garbage collection (uix-w0001)");
                         return;
                     }
-                    deref.textContent = v!=undefined ? (<any>v).toString() : ''
+                    try {
+                        const val = ref.val;
+                        deref.textContent = val!=undefined ? (<any>val).toString() : ''
+                    }
+                    catch {
+                        deref.textContent = ""
+                    }
+                    
                 };
                 Datex.Ref.observeAndInit(ref, handler);
                 return handler;

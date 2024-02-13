@@ -101,13 +101,13 @@ export class DOMUtils {
         else this.innerText = ((<any>text)?.toString()) ?? ''
     }
 
-    setElementHTML<T extends Element>(element:T, html:Datex.RefOrValue<string|Element>):T {
+    setElementHTML<T extends Element>(element:T, html:Datex.RefOrValue<string|boolean|Element>):T {
         // unobserve?
         this.element_bound_html_values.get(element)?.unobserve(element);
         this.element_bound_text_values.get(element)?.unobserve(element);
 
         // none
-        if (html == undefined) element.innerHTML = '';
+        if (html == undefined || html === false) element.innerHTML = '';
 
         // DatexValue
         if (html instanceof Datex.Ref) {
@@ -132,7 +132,7 @@ export class DOMUtils {
         element._use_markdown = markdown;
 
         // none
-        if (text == undefined) element.innerText = '';
+        if (text == undefined || text === false) element.innerText = '';
 
         // Datexv Ref
         else if (text instanceof Datex.Ref) {
@@ -630,7 +630,7 @@ export class DOMUtils {
     }
 
     formatAttributeValue(val:any, root_path?:string|URL): string {
-        if (root_path==undefined) return val?.toString?.()  ?? ""
+        if (root_path==undefined) return val?.toString?.() ?? ""
         else if (typeof val == "string" && (val.startsWith("./") || val.startsWith("../"))) return new URL(val, root_path).toString();
         else return val?.toString?.() ?? ""
     }
@@ -845,7 +845,7 @@ export class DOMUtils {
         }     
        
         else {
-            textNode.textContent = content!=undefined ? (<any>content).toString() : ''
+            textNode.textContent = (content!=undefined && content!==false) ? (<any>content).toString() : ''
         }
 
         return textNode;
@@ -863,7 +863,7 @@ export class DOMUtils {
                     }
                     try {
                         const val = ref.val;
-                        deref.textContent = val!=undefined ? (<any>val).toString() : ''
+                        deref.textContent = (val!=undefined && val!==false) ? (<any>val).toString() : ''
                     }
                     catch {
                         deref.textContent = ""

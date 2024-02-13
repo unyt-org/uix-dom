@@ -151,12 +151,12 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 	
 				element = type(params)
 
-				// async component, use uix-fragment
+				// async component, use uix-placeholder
 				if (element instanceof Promise) {
-					const fragment = document.createElement("uix-fragment");
+					const placeholder = document.createElement("uix-placeholder");
 					const callerModule = getCallerFile();
 					(element as Promise<Element>).then(val => {
-						fragment.append(initElement({
+						placeholder.replaceWith(initElement({
 							element: val,
 							children,
 							props,
@@ -168,7 +168,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 						}))
 					});
 					Datex.Ref.freezeCapturing = false;
-					return fragment;
+					return placeholder;
 				}
 
 			}

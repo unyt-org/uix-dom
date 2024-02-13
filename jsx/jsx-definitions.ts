@@ -1,4 +1,4 @@
-import type { Datex } from "datex-core-legacy/datex.ts";
+import type { Datex } from "datex-core-legacy/mod.ts";
 import type { validHTMLElementAttrs, validHTMLElementSpecificAttrs, validSVGElementSpecificAttrs } from "../attributes.ts";
 import type { HTMLElement, DocumentFragment } from "../dom/mod.ts";
 import { HTMLElementTagNameMap, SVGElementTagNameMap } from "../dom/deno-dom/src/dom/types/tags.ts";
@@ -71,7 +71,7 @@ declare global {
 			& {
 				readonly [key in keyof SVGElementTagNameMap]: _IntrinsicAttributes<HTMLElementTagNameMap[key]> & {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & htmlAttrs<validSVGElementSpecificAttrs<key>, true>
 			}
-			& Record<`${string}-${string}`, {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[], [key: string]: unknown}> // allow custom elements
+			& Record<`${string}-${string}`, _IntrinsicAttributes<HTMLElement> & {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[], [key: string]: unknown}> // allow custom elements
 			// other custom elements
 			& {
 				'shadow-root': {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & {mode?:'open'|'closed'}

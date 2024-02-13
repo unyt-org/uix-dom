@@ -1,4 +1,4 @@
-import { Datex } from "datex-core-legacy/datex.ts";
+import { Datex } from "datex-core-legacy/mod.ts";
 import { escapeString, getParseJSX } from "../jsx/parser.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
 import type { DOMUtils } from "../datex-bindings/dom-utils.ts";

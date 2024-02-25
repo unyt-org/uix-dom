@@ -1,6 +1,6 @@
 import { Datex } from "datex-core-legacy"
 import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../attributes.ts";
-import { type Element, type Text, type DocumentFragment, type HTMLTemplateElement, type HTMLElement, type SVGElement, type MathMLElement, type Node, type Comment, type Document, type HTMLInputElement, HTMLFormElement } from "../dom/mod.ts";
+import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, HTMLInputElement } from "../dom/mod.ts";
 
 import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
 import { DX_VALUE, DX_REPLACE, logger, PointerProperty } from "datex-core-legacy/datex_all.ts";
@@ -9,6 +9,7 @@ import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
 import { weakAction } from "datex-core-legacy/utils/weak-action.ts";
 import { LazyPointer } from "datex-core-legacy/runtime/lazy-pointer.ts";
+import { isolatedScope } from "datex-core-legacy/utils/isolated-scope.ts";
 
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
@@ -372,21 +373,28 @@ export class DOMUtils {
                 const valid = this.setAttribute(element, "value", value.val, rootPath)
                 const val = value;
                 if (valid) {
-                    weakAction({element}, 
+                    weakAction(
+                        // weak dependencies for init
+                        {element}, 
+                        // init (called once)
                         ({element}) => {
-                            use (this, logger, val, rootPath)
-                            const handler = (v: any) => {
+                            use (this, logger, val, rootPath, isolatedScope)
+                            const handler = isolatedScope(v => {
+                                use (this, logger, rootPath, element)
                                 const deref = element.deref();
                                 if (!deref) {
                                     logger.warn("Undetected garbage collection (uix-w0001)");
                                     return;
                                 }
                                 this.setAttribute(deref, "value", v, rootPath);
-                            }
+                            })
                             val.observe(handler);
                             return handler;
                         }, 
-                        (handler) => use(val) && val.unobserve(handler)
+                        // deinit (called when a weak init dependency is removed) - not guaranteed to be called
+                        (handler, _, {val}) => val.unobserve(handler),
+                        // weak deinit dependencies (allow gc)
+                        {val}
                     );
                 }
                 return valid;
@@ -412,20 +420,22 @@ export class DOMUtils {
             
             weakAction({element}, 
                 ({element}) => {
-                    use (this, attr, rootPath, logger, val);
+                    use (this, attr, rootPath, logger, val, isolatedScope);
 
-                    const handler = (v:any) => {
+                    const handler = isolatedScope((v:any) => {
+                        use (this, logger, rootPath, element, attr);
                         const deref = element.deref();
                         if (!deref) {
                             logger.warn("Undetected garbage collection (uix-w0001)");
                             return;
                         }
                         this.setAttribute(deref, attr, v, rootPath);
-                    };
+                    });
                     val.observe(handler);
                     return handler;
                 },
-                (handler) => use(val) && val.unobserve(handler)
+                (handler, _, {val}) => val.unobserve(handler),
+                {val}
             );
         }
         return valid;
@@ -516,8 +526,9 @@ export class DOMUtils {
 
             weakAction({element}, 
                 ({element}) => {
-                    use (theVal, logger, Datex);
-                    const handler = (val:any) => {
+                    use (theVal, logger, Datex, isolatedScope);
+                    const handler = isolatedScope((val:any) => {
+                        use (logger, element);
                         const deref = element.deref();
                         if (!deref) {
                             logger.warn("Undetected garbage collection (uix-w0001)");
@@ -525,7 +536,7 @@ export class DOMUtils {
                         }
                         if (val) deref.showModal();
                         else deref.close()
-                    };
+                    });
                     Datex.Ref.observeAndInit(theVal, handler);
                     return handler;
                 }, 
@@ -852,31 +863,38 @@ export class DOMUtils {
     }
 
     bindTextNode(textNode: Text, ref:Datex.RefLike<unknown>) {
-        weakAction({textNode}, 
-            ({textNode}) => {
-                use (ref, logger, Datex);
-                const handler = (...args) => {
-                    const deref = textNode.deref();
+        weakAction({textNode, ref}, 
+            ({textNode, ref}) => {
+                use (logger, Datex, isolatedScope);
+                // TODO: dont reference 'ref' in handler, use args from handler
+                const handler = isolatedScope((...args:any[]) => {
+                    use (logger, ref, textNode);
+                    const deref = ref.deref();
                     if (!deref) {
                         logger.warn("Undetected garbage collection (uix-w0001)");
                         return;
                     }
+                    const textNodeDeref = textNode.deref();
+                    if (!textNodeDeref) {
+                        logger.warn("Undetected garbage collection (uix-w0001)");
+                        return;
+                    }
                     try {
-                        const val = ref.val;
-                        deref.textContent = (val!=undefined && val!==false) ? (<any>val).toString() : ''
+                        const val = deref.val;
+                        textNodeDeref.textContent = (val!=undefined && val!==false) ? (<any>val).toString() : ''
                     }
                     catch {
-                        deref.textContent = ""
-                    }
-                    
-                };
+                        textNodeDeref.textContent = ""
+                    }  
+                });
                 Datex.Ref.observeAndInit(ref, handler);
                 return handler;
             }, 
-            (handler) => {
-                use(ref, Datex);
-                Datex.Ref.unobserve(ref, handler)
-            }
+            (handler, _, deps) => {
+                use(Datex);
+                Datex.Ref.unobserve(deps.ref, handler)
+            },
+            {ref}
         );   
     }
 

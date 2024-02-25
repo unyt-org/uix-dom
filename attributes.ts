@@ -175,7 +175,7 @@ export type htmlElementAttributeValues = {
 	form: {
 		method: "get"|"post",
 		enctype: "application/x-www-form-urlencoded"|"multipart/form-data"|"text/plain"
-		action: string | URL | ((...args:unknown[]) => unknown)  // TODO: |UIX.Entrypoint
+		action: string | URL | ((ctx: any) => any)  // TODO: |UIX.Entrypoint
 	},
 
 	img: widthAndHeight & src &  {
@@ -230,15 +230,23 @@ type cXY = {
 	cy: htmlPixels
 }
 
+const xy = ["x", "y"] as const;
+type xy = {
+	x: htmlPixels,
+	y: htmlPixels
+}
+
 export const svgTags = new Set(["animate", "animateMotion", "animateTransform", "circle", "clipPath", "defs", "desc", "ellipse", "feBlend", "feColorMatrix", "feComponentTransfer", "feComposite", "feConvolveMatrix", "feDiffuseLighting", "feDisplacementMap", "feDisplacementMap", "feDropShadow", "feFlood", "feFuncA", "feFuncB", "feFuncG", "feFuncR", "feGaussianBlur", "feImage", "feMerge", "feMergeNode", "feMorphology", "feOffset", "fePointLight", "feSpecularLighting", "feSpotLight", "feTile", "feTurbulence", "filter", "foreignObject", "g", "image", "line", "linearGradient", "marker", "mask", "metadata", "mpath", "path", "pattern", "polygon", "polyline", "radialGradient", "rect", "set", "stop",  "svg", "switch", "symbol", "text", "textPath","tspan", "use", "view"] satisfies (keyof SVGElementTagNameMap)[])
 
 // TODO: name collisions: "a", "script", "style",  "title", 
 
 /** list of all allowed attributes for HTML elements */
 export const svgElementAttributes = {
-	circle: [...cXY, "fill", "r"],
+	circle: [...cXY, "fill", "r", "stroke-width", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "transform"],
 	svg: [...widthAndHeight, "xmlns", "viewBox", "preserveAspectRatio", "fill"],
-	path: ["stroke", "stroke-width", "fill", "d", "fill-rule"]
+	path: ["stroke", "stroke-width", "fill", "d", "fill-rule"],
+	tspan: [...xy, "text-anchor"],
+	text: [...xy, "transform"]
 } as const satisfies {[key in keyof SVGElementTagNameMap]?: readonly string[]};
 
 
@@ -246,7 +254,9 @@ export const svgElementAttributes = {
 export type svgElementAttributeValues = {
 	circle: cXY & {
 		r: htmlPixels
-	}
+	},
+	tspan: xy,
+	text: xy
 }
 
 

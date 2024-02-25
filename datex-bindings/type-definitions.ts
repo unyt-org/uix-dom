@@ -3,12 +3,11 @@ import { DOMUtils } from "./dom-utils.ts"
 import { DX_VALUE, INIT_PROPS, logger } from "datex-core-legacy/datex_all.ts";
 import { DX_IGNORE } from "datex-core-legacy/runtime/constants.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import type { Element, DocumentFragment, MutationObserver, Document, HTMLElement, Node, Comment } from "../dom/mod.ts"
+import type { Element, DocumentFragment, MutationObserver, Document, Node, Comment } from "../dom/mod.ts"
 import { querySelector } from "../dom/shadow_dom_selector.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
-import { allDomTypes, commentType, documentType, fragmentType, htmlType, mathmlType, svgType } from "./dom-datex-types.ts";
+import { commentType, documentType, fragmentType, htmlType, mathmlType, svgType } from "./dom-datex-types.ts";
 import { getTransformWrapper } from "./transform-wrapper.ts";
-import { LazyPointer } from "datex-core-legacy/runtime/lazy-pointer.ts";
 
 let definitionsLoaded = false;
 

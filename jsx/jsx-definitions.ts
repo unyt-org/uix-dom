@@ -1,7 +1,7 @@
 import type { Datex } from "datex-core-legacy/mod.ts";
 import type { validHTMLElementAttrs, validHTMLElementSpecificAttrs, validSVGElementSpecificAttrs } from "../attributes.ts";
 import type { HTMLElement, DocumentFragment } from "../dom/mod.ts";
-import { HTMLElementTagNameMap, SVGElementTagNameMap } from "../dom/deno-dom/src/dom/types/tags.ts";
+import type { HTMLElementTagNameMap, SVGElementTagNameMap } from "../dom/deno-dom/src/dom/types/tags.ts";
 import type {Element} from "../dom/deno-dom/src/api.ts"
 
 type DomElement = Element;// HTMLElement // TODO: Element?

@@ -1,7 +1,7 @@
 
 import { BindingOptions, loadDefinitions } from "./type-definitions.ts";
 import { DOMUtils } from "./dom-utils.ts";
-import { DOMContext } from "../dom/DOMContext.ts";
+import type { DOMContext } from "../dom/DOMContext.ts";
 
 export function enableDatexBindings(context: DOMContext, options?: BindingOptions) {
 	const domUtils = new DOMUtils(context);

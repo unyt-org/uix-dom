@@ -869,6 +869,7 @@ export class DOMUtils {
                 // TODO: dont reference 'ref' in handler, use args from handler
                 const handler = isolatedScope((...args:any[]) => {
                     use (logger, ref, textNode);
+
                     const deref = ref.deref();
                     if (!deref) {
                         logger.warn("Undetected garbage collection (uix-w0001)");
@@ -879,6 +880,7 @@ export class DOMUtils {
                         logger.warn("Undetected garbage collection (uix-w0001)");
                         return;
                     }
+
                     try {
                         const val = deref.val;
                         textNodeDeref.textContent = (val!=undefined && val!==false) ? (<any>val).toString() : ''
@@ -887,11 +889,13 @@ export class DOMUtils {
                         textNodeDeref.textContent = ""
                     }  
                 });
-                Datex.Ref.observeAndInit(ref, handler);
+
+                Datex.Ref.observeAndInit(ref.deref(), handler);
                 return handler;
             }, 
             (handler, _, deps) => {
                 use(Datex);
+                console.log("unobser",deps.ref,handler)
                 Datex.Ref.unobserve(deps.ref, handler)
             },
             {ref}

@@ -895,7 +895,6 @@ export class DOMUtils {
             }, 
             (handler, _, deps) => {
                 use(Datex);
-                console.log("unobser",deps.ref,handler)
                 Datex.Ref.unobserve(deps.ref, handler)
             },
             {ref}

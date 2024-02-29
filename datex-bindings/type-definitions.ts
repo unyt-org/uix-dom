@@ -228,11 +228,10 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			if (!isComponent && !type.variation) throw new Error("cannot create "+this.class!.name+" without concrete type")
 			
 			const propertyInitializer = isComponent ? type.getPropertyInitializer(val?.p ?? {}) : null;
-
 			// create HTMLElement / UIX component
 			const el = existingElement ?? (
 				isComponent ?
-				type.newJSInstance(false, undefined, propertyInitializer!) :  // call js constructor, but don't handle as constructor in lifecycle 
+				type.newJSInstance(false) :  // call js constructor, but don't handle as constructor in lifecycle, propertyInitializer is always called afterwards
 				domUtils.createElement(type.variation) // create normal Element, no UIX lifecycle
 			);
 
@@ -339,8 +338,15 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			if (style_props && !(style_props instanceof Array || (context.CSSStyleDeclaration && style_props instanceof context.CSSStyleDeclaration))) style_props = [...Object.keys(style_props)];
 
 			if (style_props instanceof Array || style_props instanceof context.CSSStyleDeclaration) {
-				for (const prop of style_props) {
-					data.style[prop] = style[prop];
+				for (let prop of style_props) {
+					let val = style_props[prop];
+					// no value, try to find a matching property: background-color -> background
+					if (!val) {
+						prop = prop.split("-")[0]
+						val = style_props[prop];
+						if (!val) logger.warn("style property has no value",prop)
+					}
+					data.style[prop] = val;
 				}
 			}
 			

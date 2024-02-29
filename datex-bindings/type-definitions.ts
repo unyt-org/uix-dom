@@ -298,7 +298,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 
 		serialize(val: Element&{[DOMUtils.EVENT_LISTENERS]?:Map<keyof HTMLElementEventMap, Set<[Function, boolean]>>}) {
 			if (!(val instanceof this.class!)) throw "not an " + this.class!.name;
-			const data: {style:Record<string,string>, content:any[], attr:Record<string,unknown>, shadowroot?:DocumentFragment} = {style: {}, attr: {}, content: []}
+			const data: {style:Record<string,unknown>, content:any[], attr:Record<string,unknown>, shadowroot?:DocumentFragment} = {style: {}, attr: {}, content: []}
 
 			// attributes
 			for (let i = 0; i < val.attributes.length; i++) {
@@ -317,7 +317,10 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			}
 
 			// special attr bindings (value, checked)
-			for (const [attr, ref] of (<DOMUtils.elWithUIXAttributes><unknown>val)[DOMUtils.PSEUDO_ATTR_BINDINGS]??[]) {
+			for (const [attr, ref] of (<DOMUtils.elWithUIXAttributes><unknown>val)[DOMUtils.ATTR_BINDINGS]??[]) {
+				data.attr[attr] = ref;
+			}
+			for (const [attr, ref] of (<DOMUtils.elWithUIXAttributes><unknown>val)[DOMUtils.ATTR_DX_VALUES]??[]) {
 				data.attr[attr] = ref;
 			}
 
@@ -337,6 +340,8 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			let style_props = (style?._importants ? [...Object.keys(style._importants)] : style) ?? [];
 			if (style_props && !(style_props instanceof Array || (context.CSSStyleDeclaration && style_props instanceof context.CSSStyleDeclaration))) style_props = [...Object.keys(style_props)];
 
+			const weakProps = (<DOMUtils.elWithUIXAttributes><unknown>val)[DOMUtils.STYLE_WEAK_PROPS];
+
 			if (style_props instanceof Array || style_props instanceof context.CSSStyleDeclaration) {
 				for (let prop of style_props) {
 					let val = style_props[prop];
@@ -346,10 +351,17 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 						val = style_props[prop];
 						if (!val) logger.warn("style property has no value",prop)
 					}
+
+					if (weakProps?.get(prop)) continue; // is a weak binding, ignore
 					data.style[prop] = val;
 				}
 			}
 			
+			for (const [prop, ref] of (<DOMUtils.elWithUIXAttributes><unknown>val)[DOMUtils.STYLE_DX_VALUES]??[]) {
+				if (weakProps?.get(prop)) continue; // is a weak binding, ignore
+				data.style[prop] = ref;
+			}
+
 			// children
 			data.content = serializeChildren(val);
 

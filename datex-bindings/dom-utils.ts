@@ -21,8 +21,10 @@ export type appendableContent = appendableContentBase|Promise<appendableContentB
 export namespace DOMUtils {
     export type elWithUIXAttributes = Element & {
         [DOMUtils.EVENT_LISTENERS]:Map<keyof HTMLElementEventMap, Set<[(...args:any)=>any, boolean]>>
-        [DOMUtils.PSEUDO_ATTR_BINDINGS]:Map<string, Datex.Ref>,
+        [DOMUtils.ATTR_BINDINGS]:Map<string, Datex.Ref>,
         [DOMUtils.ATTR_DX_VALUES]:Map<string, Datex.Ref>,
+        [DOMUtils.STYLE_DX_VALUES]:Map<string, Datex.Ref<string>>,
+        [DOMUtils.STYLE_WEAK_PROPS]:Map<string, boolean>,
         [DOMUtils.CHILDREN_DX_VALUES]:Set<Datex.Ref>,        
         [DOMUtils.DATEX_UPDATE_TYPE]?: string
     }
@@ -31,8 +33,10 @@ export namespace DOMUtils {
 export class DOMUtils {
 
     static readonly EVENT_LISTENERS: unique symbol = Symbol.for("DOMUtils.EVENT_LISTENERS");
-    static readonly PSEUDO_ATTR_BINDINGS: unique symbol = Symbol.for("DOMUtils.ATTR_BINDINGS");
+    static readonly ATTR_BINDINGS: unique symbol = Symbol.for("DOMUtils.ATTR_BINDINGS");
     static readonly ATTR_DX_VALUES: unique symbol = Symbol.for("DOMUtils.ATTR_DX_VALUES");
+    static readonly STYLE_DX_VALUES: unique symbol = Symbol.for("DOMUtils.STYLE_DX_VALUES");
+    static readonly STYLE_WEAK_PROPS: unique symbol = Symbol.for("DOMUtils.STYLE_WEAK_PROPS");
     static readonly CHILDREN_DX_VALUES: unique symbol = Symbol.for("DOMUtils.CHILDREN_DX_VALUES");
 
     static readonly DATEX_UPDATE_TYPE: unique symbol = Symbol.for("DOMUtils.DATEX_UPDATE_TYPE");
@@ -330,9 +334,9 @@ export class DOMUtils {
 
         // bind value (used for datex-over-http updates)
         if (attr == "value" || attr == "checked") {
-            if (!(<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS]) 
-                (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS] = new Map<string, Datex.Ref>();
-            (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.PSEUDO_ATTR_BINDINGS].set(attr, value)
+            if (!(<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_BINDINGS]) 
+                (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_BINDINGS] = new Map<string, Datex.Ref>();
+            (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_BINDINGS].set(attr, value)
         }
         else {
             if (!(<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_DX_VALUES]) 
@@ -668,8 +672,20 @@ export class DOMUtils {
         return element;
     }
 
-    // set css property, updated if DatexValue
-    setCSSProperty<T extends HTMLElement>(element:T, property:string, value:Datex.RefOrValue<string|number|undefined|boolean>):T{
+    /**
+     * When enabled, the binding is not preserved when transferring the element to another context
+     */
+    enableCSSPropertyWeakBinding<T extends HTMLElement>(element:T, property:string, weak = true) {
+        if (!(<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.STYLE_WEAK_PROPS]) 
+            (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.STYLE_WEAK_PROPS] = new Map<string, boolean>();
+        (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.STYLE_WEAK_PROPS].set(property, weak)
+    }
+
+    /**
+     * Set css property of an element, updates reactively if pointer
+     * If weakBinding is true, the binding is not preserved when transferring the element to another context
+     */
+    setCSSProperty<T extends HTMLElement>(element:T, property:string, value:Datex.RefOrValue<string|number|undefined|boolean>, weakBinding = false):T{
         // convert camelCase to kebab-case
         property = property?.replace(/[A-Z]/g, x => `-${x.toLowerCase()}`);
         // none
@@ -687,6 +703,14 @@ export class DOMUtils {
         // }
         // other Datex CompatValue
         else {
+
+            // remember style ref binding
+            if (!weakBinding && Datex.Ref.isRef(value)) {
+                if (!(<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.STYLE_DX_VALUES]) 
+                    (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.STYLE_DX_VALUES] = new Map<string, Datex.Ref>();
+                (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.STYLE_DX_VALUES].set(property, value)
+            }
+            
             Datex.Ref.observeAndInit(value, (v,k,t) => {
                 if (property == "display" && typeof v == "boolean") {
                     v = v ? (globalThis.CSS?.supports("display: revert-layer") ? "revert-layer" : "revert") : "none";

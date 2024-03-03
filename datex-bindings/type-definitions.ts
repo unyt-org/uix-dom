@@ -227,7 +227,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			const isComponent = type.name == "uix";
 			if (!isComponent && !type.variation) throw new Error("cannot create "+this.class!.name+" without concrete type")
 			
-			const propertyInitializer = isComponent ? type.getPropertyInitializer(val?.p ?? {}) : null;
+			const propertyInitializer = isComponent ? type.getPropertyInitializer(val?.p ?? {}, false) : null;
 			// create HTMLElement / UIX component
 			const el = existingElement ?? (
 				isComponent ?

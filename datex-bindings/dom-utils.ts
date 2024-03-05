@@ -844,6 +844,7 @@ export class DOMUtils {
             });
 
             const placeholder = this.document.createElement("uix-placeholder")
+            this.addProxy(placeholder);
             newNode = placeholder;
         }
         else if (newNode == undefined) {

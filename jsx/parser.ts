@@ -154,6 +154,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 				// async component, use uix-placeholder
 				if (element instanceof Promise) {
 					const placeholder = document.createElement("uix-placeholder");
+					domUtils.addProxy(placeholder);
 					const callerModule = getCallerFile();
 					(element as Promise<Element>).then(val => {
 						placeholder.replaceWith(initElement({

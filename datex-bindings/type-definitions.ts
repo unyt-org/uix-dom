@@ -3,7 +3,6 @@ import { DOMUtils } from "./dom-utils.ts"
 import { DX_VALUE, INIT_PROPS, logger } from "datex-core-legacy/datex_all.ts";
 import { DX_IGNORE } from "datex-core-legacy/runtime/constants.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import type { Element, DocumentFragment, MutationObserver, Document, Node, Comment } from "../dom/mod.ts"
 import { querySelector } from "../dom/shadow_dom_selector.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
 import { commentType, documentType, fragmentType, htmlType, mathmlType, svgType } from "./dom-datex-types.ts";

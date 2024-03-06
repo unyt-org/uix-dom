@@ -1,4 +1,3 @@
-import type { HTMLElement, Element, DocumentFragment } from "../dom/mod.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
 import { JSX_INSERT_STRING, type DOMUtils, appendableContent } from "../datex-bindings/dom-utils.ts";
 

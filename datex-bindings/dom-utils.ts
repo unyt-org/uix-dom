@@ -1,6 +1,5 @@
 import { Datex } from "datex-core-legacy"
 import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../attributes.ts";
-import type { Element, Text, DocumentFragment, HTMLTemplateElement, HTMLElement, SVGElement, MathMLElement, Node, HTMLInputElement } from "../dom/mod.ts";
 
 import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
 import { DX_VALUE, DX_REPLACE, logger, PointerProperty } from "datex-core-legacy/datex_all.ts";

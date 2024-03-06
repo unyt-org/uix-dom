@@ -1,5 +1,3 @@
-import type { Document, HTMLElement, Node } from "./mod.ts";
-
 export function querySelectorAll(selector:string, node:HTMLElement|Document = globalThis.document)  {
     const nodes = [...node.querySelectorAll(selector)],
         nodeIterator = document.createNodeIterator(node, Node.ELEMENT_NODE);

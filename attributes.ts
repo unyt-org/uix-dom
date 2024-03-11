@@ -13,6 +13,7 @@ type numberString = `${number}`
 type integerString = `${bigint}`
 type htmlNumber = numberString|number|bigint
 type htmlPixels = integerString|number|bigint
+type svgLength = htmlNumber|`${number}%`
 type htmlColor = ""
 
 // list of all event handler content attributes
@@ -51,8 +52,15 @@ type customDefaultAttributeValues = {
 export type validHTMLElementAttrs<El extends HTMLElement> = {
 	[key in typeof defaultElementAttributes[number]]: (key extends keyof customDefaultAttributeValues ? customDefaultAttributeValues[key] : string)
 } & {
-	[key in elementEventHandlerAttribute]: (this: El, event: Event) => void
-} //key extends keyof GlobalEventHandlers ? GlobalEventHandlers[key] : never
+	[key in elementEventHandlerAttribute]: 
+		key extends keyof GlobalEventHandlers ? 
+			GlobalEventHandlers[key] & ((this: El, ev: never) => any) : 
+		key extends `${infer name}:frontend` ?
+			name extends keyof GlobalEventHandlers ?
+				GlobalEventHandlers[name] & ((this: El, ev: never) => any) :
+				never :
+		never
+} 
 
 
 export type validHTMLElementSpecificAttrs<TAG extends string> = TAG extends keyof typeof htmlElementAttributes ? {
@@ -225,14 +233,14 @@ export type htmlElementAttributeValues = {
 // width, height
 const cXY = ["cx", "cy"] as const;
 type cXY = {
-	cx: htmlPixels,
-	cy: htmlPixels
+	cx: svgLength,
+	cy: svgLength
 }
 
 const xy = ["x", "y"] as const;
 type xy = {
-	x: htmlPixels,
-	y: htmlPixels
+	x: svgLength,
+	y: svgLength
 }
 
 export const svgTags = new Set(["animate", "animateMotion", "animateTransform", "circle", "clipPath", "defs", "desc", "ellipse", "feBlend", "feColorMatrix", "feComponentTransfer", "feComposite", "feConvolveMatrix", "feDiffuseLighting", "feDisplacementMap", "feDisplacementMap", "feDropShadow", "feFlood", "feFuncA", "feFuncB", "feFuncG", "feFuncR", "feGaussianBlur", "feImage", "feMerge", "feMergeNode", "feMorphology", "feOffset", "fePointLight", "feSpecularLighting", "feSpotLight", "feTile", "feTurbulence", "filter", "foreignObject", "g", "image", "line", "linearGradient", "marker", "mask", "metadata", "mpath", "path", "pattern", "polygon", "polyline", "radialGradient", "rect", "set", "stop",  "svg", "switch", "symbol", "text", "textPath","tspan", "use", "view"] satisfies (keyof SVGElementTagNameMap)[])
@@ -252,7 +260,7 @@ export const svgElementAttributes = {
 /** custom values for specific element attributes (default: string) */
 export type svgElementAttributeValues = {
 	circle: cXY & {
-		r: htmlPixels
+		r: svgLength
 	},
 	tspan: xy,
 	text: xy

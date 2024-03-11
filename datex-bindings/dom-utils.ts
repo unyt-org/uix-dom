@@ -616,10 +616,20 @@ export class DOMUtils {
                 // action callback function
                 if (typeof handler == "function") {
                     const eventName = "submit";
-                    element.addEventListener(eventName, async () => {
-                        const {Routing} = await import("../../routing/frontend-routing.ts"); // TODO: better way to import
-                        Routing.renderEntrypoint(handler)
-                    });
+
+                    // backend function
+                    const ptr = Datex.Pointer.getByValue(handler);
+                    if (ptr && !ptr.is_origin) {
+                        element.setAttribute("action", `/@uix/form-action/${ptr.idString()}`);
+                    }
+                    // normal function (TODO)
+                    else {
+                        element.addEventListener(eventName, async () => {
+                            const {Routing} = await import("../../routing/frontend-routing.ts"); // TODO: better way to import
+                            Routing.renderEntrypoint(handler)
+                        });
+                    }
+
                     // save in [DOMUtils.EVENT_LISTENERS]
                     if (!(<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS]) (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS] = new Map<keyof HTMLElementEventMap, [Set<Function>, boolean]>();
                     if (!(<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].has(eventName)) (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].set(eventName, new Set());

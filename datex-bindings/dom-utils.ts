@@ -508,8 +508,13 @@ export class DOMUtils {
         }
 
         // update checkbox checked property (bug?)
-        else if (attr == "checked") {
-            (element as HTMLInputElement).checked = val;
+        else if (element instanceof HTMLInputElement && attr == "checked") {
+            element.checked = val as boolean;
+        }
+
+        // update muted property
+        else if (element instanceof HTMLMediaElement && attr == "muted") {
+            element.muted = val as boolean;
         }
 
         // set datex-update

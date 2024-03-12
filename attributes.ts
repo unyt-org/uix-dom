@@ -99,13 +99,17 @@ type href = {
 // alt
 const alt = "alt" as const;
 
+// rel
+type rel = {
+	rel: "alternate"|"author"|"bookmark"|"canonical"|"dns-prefetch"|"external"|"help"|"icon"|"license"|"manifest"|"me"|"modulepreload"|"next"|"nofollow"|"noreferrer"|"opener"|"pingback"|"preconnect"|"prefetch"|"preload"|"prerender"|"prev"|"privacy-policy"|"search"|"stylesheet"|"tag"|"terms-of-service"
+}
 
 type MediaStream = any; // TODO:
 
 /** list of all allowed attributes for HTML elements */
 export const htmlElementAttributes = {
 
-	a: [...href, "target"],
+	a: [...href, "target", "rel"],
 	link: [...href, "rel"],
 
 	script: [...src, "type"],
@@ -113,7 +117,7 @@ export const htmlElementAttributes = {
 	progress: ["value", "max", "min"],
 	input: [alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out", "value:in"],
 	button: ["type", "disabled"],
-	form: ["method", "enctype", "action"],
+	form: ["method", "enctype", "action", "rel"],
 	img: [alt, ...src, ...widthAndHeight, "border", "crossorigin", "ismap", "loading", "longdesc", "referrerpolicy", "sizes", "srcset", "usemap"],
 	template: ["shadowrootmode"],
 	iframe: [...src, "allowtransparency", "allow"],
@@ -132,11 +136,9 @@ export const htmlElementAttributes = {
 
 /** custom values for specific element attributes (default: string) */
 export type htmlElementAttributeValues = {
-	a: href,
+	a: href & rel,
 
-	link: href & {
-		rel: string
-	},
+	link: href & rel,
 
 	input: widthAndHeight & src & {
 		autocomplete: "on"|"off"
@@ -179,7 +181,7 @@ export type htmlElementAttributeValues = {
 		disabled: boolean
 	},
 
-	form: {
+	form: rel & {
 		method: "get"|"post",
 		enctype: "application/x-www-form-urlencoded"|"multipart/form-data"|"text/plain"
 		action: string | URL | ((ctx: any) => any)  // TODO: |UIX.Entrypoint

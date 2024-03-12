@@ -62,7 +62,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 				// get caller module
 				else {
 					const stack = getCallerInfo();
-					if (stack) {
+					if (stack && stack[1]) {
 						module = (
 							stack[1].name == "jsxs" ? // called via jsxs, skip one more in stack
 								stack[2] : 

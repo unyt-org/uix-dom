@@ -109,7 +109,7 @@ type MediaStream = any; // TODO:
 /** list of all allowed attributes for HTML elements */
 export const htmlElementAttributes = {
 
-	a: [...href, "target", "rel"],
+	a: [...href, "target", "download", "rel"],
 	link: [...href, "rel"],
 
 	script: [...src, "type"],
@@ -136,7 +136,9 @@ export const htmlElementAttributes = {
 
 /** custom values for specific element attributes (default: string) */
 export type htmlElementAttributeValues = {
-	a: href & rel,
+	a: href & rel & {
+		download: string|boolean
+	},
 
 	link: href & rel,
 

@@ -403,6 +403,17 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 
 		create_proxy(val, pointer) {
 			if (!val.hasAttribute("uix-ptr")) val.setAttribute("uix-ptr", pointer.id);
+
+			const cloneNodeOriginal = val.cloneNode.bind(val);
+
+			// override cloneNode to bind cloned node to a new pointer
+			val.cloneNode = function(deep: boolean) {
+				const clone = cloneNodeOriginal(deep);
+				clone.removeAttribute("uix-ptr");
+				delete clone[Datex.DX_PTR];
+				return $$(clone);
+			}
+
 			// TODO: (handled separately for components)
 			// bindObserver(val);
 			return val;

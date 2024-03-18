@@ -116,7 +116,7 @@ export const htmlElementAttributes = {
 
 	progress: ["value", "max", "min"],
 	input: [alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out", "value:in"],
-	button: ["type", "disabled"],
+	button: ["type", "disabled", "form"],
 	form: ["method", "enctype", "action", "rel"],
 	img: [alt, ...src, ...widthAndHeight, "border", "crossorigin", "ismap", "loading", "longdesc", "referrerpolicy", "sizes", "srcset", "usemap"],
 	template: ["shadowrootmode"],

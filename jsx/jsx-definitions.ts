@@ -26,7 +26,7 @@ declare global {
 			children: HTMLElement[]|HTMLElement
 		}
 
-		type singleChild = Datex.RefOrValue<Element>|Datex.RefOrValue<DocumentFragment>|Datex.RefOrValue<string>|Datex.RefOrValue<number>|Datex.RefOrValue<boolean>|Datex.RefOrValue<bigint>|Datex.RefOrValue<null>|Datex.RefOrValue<undefined>;
+		type singleChild = Datex.RefOrValue<Node>|Datex.RefOrValue<DocumentFragment>|Datex.RefOrValue<string>|Datex.RefOrValue<number>|Datex.RefOrValue<boolean>|Datex.RefOrValue<bigint>|Datex.RefOrValue<null>|Datex.RefOrValue<undefined>;
 		type singleOrMultipleChildren = singleChild|singleChild[]|Map<number, singleChild>;
 		type childrenOrChildrenPromise = singleOrMultipleChildren|Promise<singleOrMultipleChildren>|Datex.Pointer<Element[]>
 		// enable as workaround to allow {...[elements]} type checking to work correctly

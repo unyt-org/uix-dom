@@ -866,7 +866,7 @@ export class DOMUtils {
         }
 
         // unsupported value - create text node
-        if (!(newNode instanceof this.context.Element || newNode instanceof this.context.DocumentFragment || newNode instanceof this.context.Comment)) {
+        if (!(newNode instanceof this.context.Node || newNode instanceof this.context.DocumentFragment || newNode instanceof this.context.Comment)) {
             newNode = this.getTextNode(newNode);
         }
 
@@ -877,7 +877,7 @@ export class DOMUtils {
     }
 
     getTextNode(content:any) {
-        const textNode = this.document.createTextNode("");
+        const textNode = this.document.createTextNode("") as unknown as Text;
         (textNode as any)[DX_VALUE] = content;
 
         // lazy pointer or lazy pointer property
@@ -963,6 +963,7 @@ export class DOMUtils {
      */
     appendElementOrShadowRoot(anchor: Element|DocumentFragment, element: Element|DocumentFragment|Text, appendAll = true, insertAfterAnchor = false, onAppend?: ((list: (Node)[]) => void)) {
         const appendedContent: Node[] = [];
+
         for (const candidate of (element instanceof this.context.DocumentFragment ? [...(element.childNodes as any)] : [element]) as unknown as Node[]) {
             if (anchor instanceof this.context.HTMLElement && candidate instanceof this.context.HTMLTemplateElement && candidate.hasAttribute("shadowrootmode")) {
                 if (anchor.shadowRoot) throw new Error("element <"+anchor.tagName.toLowerCase()+"> already has a shadow root")

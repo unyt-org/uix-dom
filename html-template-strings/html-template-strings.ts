@@ -1,7 +1,10 @@
 import { Datex } from "datex-core-legacy/mod.ts";
 import { escapeString, getParseJSX } from "../jsx/parser.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
-import type { DOMUtils } from "../datex-bindings/dom-utils.ts";
+import { type DOMUtils, JSX_INSERT_STRING } from "../datex-bindings/dom-utils.ts";
+
+import { he } from "./he.js";
+import { Class } from "datex-core-legacy/utils/global_types.ts";
 
 const injectionMarker = '\x00';
 const tagStart = /^<([\w\-.:]*|\x00\[\d+\])\s*( |\/|>)/;
@@ -24,12 +27,6 @@ const untilTagClose = /[^<]*(?=<|$)/
  */
 export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: ReturnType<typeof getParseJSX>) {
 
-	function decodeHTMLEntity(inputStr:string) {
-		const textarea = context.document.createElement("textarea");
-		textarea.innerHTML = inputStr;
-		return textarea.value;
-	}
-
 	function matchTag(html:string, content:any[]) {
 		const start = html.match(tagStart);
 		const tag = start?.[1];
@@ -39,16 +36,16 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 			const matchInner = html.match(untilTagClose);
 			if (!matchInner) throw new Error("UIX.HTML: Invalid HTML")
 			const inner = matchInner[0];
-			html = html.replace(matchInner[0], "").trimStart();
+			html = html.replace(matchInner[0], "")//.trimStart();
 			const injectedIds = [...inner.matchAll(extractInjectedIds)].map(v=>Number(v[1]));
 			const injected = content.slice(injectedIds.at(0), injectedIds.at(-1)!+1)
-			const contentParts = inner.split(extractInjectedIdsNoGroup).map(v=>decodeHTMLEntity(v)); // convert &nbsp; etc
+			const contentParts = inner.split(extractInjectedIdsNoGroup).map(v=>he.decode(v)); // convert &nbsp; etc
 	
 			const combined = contentParts.map((e,i) => [e, injected[i]]).flat().slice(0, -1).filter(c=>c!=="");
 			return [html, ...combined]
 		}
 	
-		html = html.replace(start[0], "").trimStart();
+		html = html.replace(start[0], "")//.trimStart();
 		const immediateTagClose = start[2] == "/";
 		const noAttrs = immediateTagClose || start[2] == ">"
 	
@@ -56,7 +53,7 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 		if (immediateTagClose) html = "/" + html
 		else if (noAttrs) html = ">" + html
 	
-		let tagName:string|Function = tag;
+		let tagName:string|Class = tag;
 		if (tag.startsWith(injectionMarker)) tagName = content[Number(tag.match(extractInjectedId)![1])]
 	
 		// tag start - attributes
@@ -64,13 +61,13 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 	
 		if (!noAttrs) {
 			while (html && !html.match(tagEnd)) {
-				html = matchAttribute(html, content, attrs).trimStart();
+				html = matchAttribute(html, content, attrs)//.trimStart();
 			}
 		}
 		
 		const endMatch = html.match(tagEnd)!;
 		const selfClosing = immediateTagClose || !!endMatch[1]
-		html = html.replace(endMatch[0], "").trimStart();
+		html = html.replace(endMatch[0], "")//.trimStart();
 		
 		// children
 		if (!selfClosing) {
@@ -82,13 +79,12 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 			}
 			if (!matchClose) console.warn("UIX.HTML: missing closing tag for " + (typeof tagName == "string" ? tagName : tagName.name))
 			if (matchClose && matchClose![1]!=tagName) throw new Error("UIX.HTML: closing tag "+matchClose![1]+" does not match " + (typeof tagName == "string" ? tagName : tagName.name))
-			if (matchClose) html = html.replace(matchClose![0], "").trimStart();
+			if (matchClose) html = html.replace(matchClose![0], "")//.trimStart();
 		}
 	
 		// single child
 		if (attrs.children.length == 1) attrs.children = attrs.children[0];
-	
-	
+		
 		return [html, jsx(tagName, attrs)] as const;
 	}
 	
@@ -104,13 +100,13 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 		if (!attr) {
 			const trueAttr = html.match(word);
 			if (trueAttr) {
-				html = html.replace(trueAttr[0], "").trimStart();
+				html = html.replace(trueAttr[0], "")//.trimStart();
 				attrs[trueAttr[0]] = true;
 			}
 			return html;
 		}
 	
-		html = html.replace(attr[0], "").trimStart();
+		html = html.replace(attr[0], "")//.trimStart();
 		const attrName = attr[1];
 	
 		const attrValMatch = html.match(string);
@@ -122,14 +118,14 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 	
 		// matched " or '
 		if (attrValMatch) {
-			html = html.replace(attrValMatch[0], "").trimStart();
+			html = html.replace(attrValMatch[0], "")//.trimStart();
 			attrVal = attrValMatch?.[0]?.slice(1,-1)
 		}
 		// injected js
 		else if (html.startsWith(injectionMarker)) {
 			const match = html.match(extractInjectedId);
 			attrVal = content[Number(match![1])];
-			html = html.replace(match![0], "").trimStart();
+			html = html.replace(match![0], "")//.trimStart();
 			contentInserted = true;
 		}
 		// injected dx
@@ -147,7 +143,7 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 		else if (html.match(word)) {
 			const valMatch = html.match(word);
 			if (!valMatch) throw new Error("UIX.HTML: Invalid HTML, invalid attribute definition ("+attrName+")");
-			html = html.replace(valMatch[0], "").trimStart();
+			html = html.replace(valMatch[0], "")//.trimStart();
 			attrVal = valMatch[0];
 		}
 		else {
@@ -157,9 +153,14 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 		// resolve "\x00(1)"
 		if (!contentInserted && typeof attrVal=="string" && attrVal?.includes(injectionMarker)) {
 			const injectedIds = [...attrVal.matchAll(extractInjectedIds)].map(v=>Number(v[1]));
-			const injected = content.slice(injectedIds.at(0), injectedIds.at(-1)!+1)
-			attrVal = attrVal.replaceAll(extractInjectedIds, Datex.INSERT_MARK);
-			throw "todo: $$ transform for attribute"
+
+			if (injectedIds.length == 1 && !attrVal.match(/^\[\d+\]$/)) {
+				const injected = content[injectedIds[0]];
+				attrVal = injected?.[JSX_INSERT_STRING] ? (injected as any).val : injected; // attrVal.replaceAll(extractInjectedIds, Datex.INSERT_MARK);
+			}
+			else {
+				throw "Transforms for HTML attributes are not yet implemented"
+			}
 		}
 	
 		attrs[attrName] = attrVal;
@@ -171,7 +172,7 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 	// export function HTML(value:any): Element|DocumentFragment
 	// export function HTML<R extends Element|DocumentFragment = Element|DocumentFragment>(template:TemplateStringsArray|string, ...content:(Element|Datex.CompatValue<unknown>)[]): R
 
-	return function HTML(template:any, ...content:(Element|Datex.CompatValue<unknown>)[]) {
+	return function HTML(template:any, ...content:(Element|Datex.RefOrValue<unknown>)[]) {
 		const isTemplate = template?.raw instanceof Array && template instanceof Array;
 		// non template value - convert to HTML node
 		if (!isTemplate) {
@@ -192,7 +193,7 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 				html += raw;
 				if (c<(template as unknown as TemplateStringsArray).raw.length-1) html += `\x00[${c++}]`;
 			}
-			html = html.trimStart();
+			html = html//.trimStart();
 			const all = [];
 			while (true) {
 				const [_html, ...children] = matchTag(html, content);

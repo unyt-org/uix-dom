@@ -34,7 +34,7 @@ export const defaultElementAttributes = [
 	"accesskey", "class", "contenteditable", "contextmenu", "dir", "draggable", "dropzone", "hidden", "id", "lang", "spellcheck", "style", "tabindex", "title",
 	"role", "name", "slot",
 	// uix specific
-	"uix-module", "stylesheet",
+	"uix-module", "uix-title", "stylesheet",
 	"datex-pointer", "datex-update",
 	"shadow-root", "display"
 ] as const;
@@ -43,6 +43,7 @@ export const defaultElementAttributes = [
 // custom attribute values for default attributes (default: string)
 type customDefaultAttributeValues = {
 	"uix-module": string|URL|null,
+	"uix-title": string,
 	"stylesheet": string|URL|null,
 	"shadow-root": boolean|'open'|'closed',
 	"datex-pointer": boolean,

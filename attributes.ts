@@ -131,7 +131,8 @@ export const htmlElementAttributes = {
 	select: ["value", "required"],
 	dialog: ["open"],
 	table: ["cellspacing", "cellpadding", "align", "width", "border"],
-	meta: ["content"]
+	meta: ["content"],
+	optgroup: ["label", "disabled"],
 } as const satisfies {[key in keyof HTMLElementTagNameMap]?: readonly string[]};
 
 
@@ -230,7 +231,12 @@ export type htmlElementAttributeValues = {
 		align: string,
 		width: string, 
 		border: string
-	}
+	},
+
+	optgroup: {
+		label: string,
+		disabled: boolean
+	},
 }
 
 

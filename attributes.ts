@@ -164,7 +164,7 @@ export type htmlElementAttributeValues = {
 		step: htmlNumber,
 		type: "button"|"checkbox"|"color"|"date"|"datetime-local"|"email"|"file"|"hidden"|"image"|"month"|"number"|"password"|"radio"|"range"|"reset"|"search"|"submit"|"tel"|"text"|"time"|"url"|"week",
 
-		value: primitive,
+		value: primitive|Date,
 		"value:out": Datex.Pointer,
 		"value:in": Datex.Pointer
 	},

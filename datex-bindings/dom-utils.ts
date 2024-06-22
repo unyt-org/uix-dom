@@ -9,6 +9,7 @@ import { client_type } from "datex-core-legacy/utils/constants.ts";
 import { weakAction } from "datex-core-legacy/utils/weak-action.ts";
 import { LazyPointer } from "datex-core-legacy/runtime/lazy-pointer.ts";
 import { isolatedScope } from "datex-core-legacy/utils/isolated-scope.ts";
+import { Time } from "datex-core-legacy/types/time.ts";
 
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
@@ -368,6 +369,9 @@ export class DOMUtils {
                 else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => handleSetVal(BigInt(element.value)))
                 else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(Boolean(element.value)))
                 else if (type.matchesType(Datex.Type.std.void) || type.matchesType(Datex.Type.std.null)) {console.warn("setting value attribute to " + type, element)}
+                else if (type.matchesType(Datex.Type.std.time)) element.addEventListener(event, () => {
+                    handleSetVal(new Time((element as unknown as HTMLInputElement).valueAsDate ?? new Date((element as unknown as HTMLInputElement).value+"Z")))
+                })
                 else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
             }
          
@@ -503,7 +507,7 @@ export class DOMUtils {
             }
             // set value property
             else {
-                (element as HTMLInputElement).value = this.formatAttributeValue(val,root_path)
+                (element as HTMLInputElement).value = this.formatAttributeValue(val, root_path, element)
             }
         }
 
@@ -524,7 +528,7 @@ export class DOMUtils {
 
         // set stylesheet
         else if (attr == "stylesheet") {
-            element.append(this.createHTMLElement(`<link rel="stylesheet" href="${this.formatAttributeValue(val, root_path)}?scope"/>`))
+            element.append(this.createHTMLElement(`<link rel="stylesheet" href="${this.formatAttributeValue(val, root_path, element)}?scope"/>`))
         }
 
         // update checkbox checked property (bug?)
@@ -641,7 +645,7 @@ export class DOMUtils {
                     (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].get(eventName)!.add([handler, false]);
                 }
                 // default "action" (path)
-                else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
+                else element.setAttribute(attr, this.formatAttributeValue(val, root_path, element));
             }
             
         }
@@ -650,7 +654,7 @@ export class DOMUtils {
         else {
             if (val === false) element.removeAttribute(attr);
             else if (val === true) element.setAttribute(attr, "");
-            else element.setAttribute(attr, this.formatAttributeValue(val,root_path));
+            else element.setAttribute(attr, this.formatAttributeValue(val, root_path, element));
         }
 
     
@@ -658,9 +662,13 @@ export class DOMUtils {
         
     }
 
-    formatAttributeValue(val:any, root_path?:string|URL): string {
+    formatAttributeValue(val:any, root_path?:string|URL, element?:Element): string {
         if (root_path==undefined) return val?.toString?.() ?? ""
         else if (typeof val == "string" && (val.startsWith("./") || val.startsWith("../"))) return new URL(val, root_path).toString();
+        else if (val instanceof Date) {
+            if ((element as HTMLInputElement).type == "datetime-local") return val.toISOString().slice(0,-8);
+            else return val.toISOString().slice(0,10);
+        }
         else return val?.toString?.() ?? ""
     }
 

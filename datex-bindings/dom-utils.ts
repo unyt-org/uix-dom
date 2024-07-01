@@ -615,7 +615,11 @@ export class DOMUtils {
                     if (!(<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].has(eventName)) (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].set(eventName, new Set());
                     (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].get(eventName)!.add([handler, false]);
                 }
-                else throw new Error("Cannot set event listener for element attribute '"+attr+"'")
+                else if (typeof handler == "string") element.setAttribute(attr, handler);
+                else {
+                    console.log(attr,handler)
+                    throw new Error("Cannot set event listener for element attribute '"+attr+"'")
+                }
             }
             
         }

@@ -258,13 +258,17 @@ export const svgTags = new Set(["animate", "animateMotion", "animateTransform", 
 
 // TODO: name collisions: "a", "script", "style",  "title", 
 
+const genericSvgAttributes = [
+	"fill", "fill-rule", "stroke", "stroke-width", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "transform"
+]
+
 /** list of all allowed attributes for HTML elements */
 export const svgElementAttributes = {
-	circle: [...cXY, "fill", "r", "stroke-width", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "transform"],
-	svg: [...widthAndHeight, "xmlns", "viewBox", "preserveAspectRatio", "fill"],
-	path: ["stroke", "stroke-width", "fill", "d", "fill-rule"],
-	tspan: [...xy, "text-anchor"],
-	text: [...xy, "transform"]
+	circle: [...cXY, ...genericSvgAttributes, "r"],
+	svg: [...widthAndHeight, ...genericSvgAttributes, "xmlns", "viewBox", "preserveAspectRatio", "fill"],
+	path: [...genericSvgAttributes, "d"],
+	tspan: [...xy, ...genericSvgAttributes, "text-anchor"],
+	text: [...xy, ...genericSvgAttributes, "transform"]
 } as const satisfies {[key in keyof SVGElementTagNameMap]?: readonly string[]};
 
 

@@ -113,7 +113,7 @@ export const htmlElementAttributes = {
 	a: [...href, "target", "download", "rel"],
 	link: [...href, "rel"],
 
-	script: [...src, "type"],
+	script: [...src, "type", "async", "defer", "nomodule", "crossorigin", "integrity", "referrerpolicy"],
 
 	progress: ["value", "max", "min"],
 	input: [alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out", "value:in"],
@@ -265,7 +265,7 @@ const genericSvgAttributes = [
 /** list of all allowed attributes for HTML elements */
 export const svgElementAttributes = {
 	circle: [...cXY, ...genericSvgAttributes, "r"],
-	svg: [...widthAndHeight, ...genericSvgAttributes, "xmlns", "viewBox", "preserveAspectRatio"],
+	svg: [...widthAndHeight, ...genericSvgAttributes, "xmlns", "version", "xmlns:xlink", "viewBox", "preserveAspectRatio"],
 	path: [...genericSvgAttributes, "d"],
 	tspan: [...xy, ...genericSvgAttributes, "text-anchor"],
 	text: [...xy, ...genericSvgAttributes],

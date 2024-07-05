@@ -265,10 +265,11 @@ const genericSvgAttributes = [
 /** list of all allowed attributes for HTML elements */
 export const svgElementAttributes = {
 	circle: [...cXY, ...genericSvgAttributes, "r"],
-	svg: [...widthAndHeight, ...genericSvgAttributes, "xmlns", "viewBox", "preserveAspectRatio", "fill"],
+	svg: [...widthAndHeight, ...genericSvgAttributes, "xmlns", "viewBox", "preserveAspectRatio"],
 	path: [...genericSvgAttributes, "d"],
 	tspan: [...xy, ...genericSvgAttributes, "text-anchor"],
-	text: [...xy, ...genericSvgAttributes, "transform"]
+	text: [...xy, ...genericSvgAttributes],
+	g: [...xy, ...genericSvgAttributes]
 } as const satisfies {[key in keyof SVGElementTagNameMap]?: readonly string[]};
 
 

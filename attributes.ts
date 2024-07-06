@@ -260,7 +260,7 @@ export const svgTags = new Set(["animate", "animateMotion", "animateTransform", 
 
 const genericSvgAttributes = [
 	"fill", "fill-rule", "stroke", "stroke-width", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "transform"
-]
+] as const;
 
 /** list of all allowed attributes for HTML elements */
 export const svgElementAttributes = {

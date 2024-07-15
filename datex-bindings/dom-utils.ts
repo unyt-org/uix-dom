@@ -600,6 +600,12 @@ export class DOMUtils {
             element.srcObject = val;
         }
 
+        // src path with import map specifier
+        // TODO: currently only enabled for specific folder names to keep backwards compatibility, this should be enabled for all paths
+        else if (attr === "src" && typeof val == "string" && (val.startsWith("common/") || val.startsWith("frontend/"))) {
+            element.setAttribute(attr, `/@uix/src/${val}`);
+        }
+
         // event listener
         else if (attr.startsWith("on")) {
             for (const handler of ((val instanceof Array || val instanceof Set) ? val : [val])) {

@@ -1,5 +1,5 @@
 import { Datex } from "datex-core-legacy"
-import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgTags } from "../attributes.ts";
+import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgElementAttributesLowercase, svgTags } from "../attributes.ts";
 
 import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
 import { DX_VALUE, DX_REPLACE, logger, PointerProperty } from "datex-core-legacy/datex_all.ts";
@@ -293,7 +293,7 @@ export class DOMUtils {
             defaultElementAttributes.includes(<typeof defaultElementAttributes[number]>attr) || 
             elementEventHandlerAttributes.includes(<typeof elementEventHandlerAttributes[number]>attr) ||
             (<readonly string[]>htmlElementAttributes[<keyof typeof htmlElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof htmlElementAttributes[keyof typeof htmlElementAttributes][number]>attr) ||
-            (<readonly string[]>svgElementAttributes[<keyof typeof svgElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof svgElementAttributes[keyof typeof svgElementAttributes][number]>attr) )) {
+            (<readonly string[]>svgElementAttributesLowercase[<keyof typeof svgElementAttributesLowercase>element.tagName.toLowerCase()])?.includes(<typeof svgElementAttributes[keyof typeof svgElementAttributes][number]>attr) )) {
                 return false;
         }
 

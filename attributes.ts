@@ -259,18 +259,38 @@ export const svgTags = new Set(["animate", "animateMotion", "animateTransform", 
 // TODO: name collisions: "a", "script", "style",  "title", 
 
 const genericSvgAttributes = [
-	"fill", "fill-rule", "stroke", "stroke-width", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "transform"
+	...cXY, ...widthAndHeight, ...xy, "fill", "fill-rule", "stroke", "stroke-width", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "transform",
+	"mode", "in", "in2", "result", "filterUnits", "color-interpolation-filters","stop-color","offset","gradientUnits","gradientTransform",
+	"xmlns", "version", "xmlns:xlink", "viewBox", "preserveAspectRatio", "d", "stdDeviation", "values", "type", "clip-path", "text-anchor", "filter", "flood-opacity", "operator", "dy", "fill-opacity", "r"
 ] as const;
 
 /** list of all allowed attributes for HTML elements */
-export const svgElementAttributes = {
-	circle: [...cXY, ...genericSvgAttributes, "r"],
-	svg: [...widthAndHeight, ...genericSvgAttributes, "xmlns", "version", "xmlns:xlink", "viewBox", "preserveAspectRatio"],
-	path: [...genericSvgAttributes, "d"],
-	tspan: [...xy, ...genericSvgAttributes, "text-anchor"],
-	text: [...xy, ...genericSvgAttributes],
-	g: [...xy, ...genericSvgAttributes]
-} as const satisfies {[key in keyof SVGElementTagNameMap]?: readonly string[]};
+export const svgElementAttributes = Object.fromEntries([...svgTags].map(tag => [tag, genericSvgAttributes])) satisfies {[key in keyof SVGElementTagNameMap]?: readonly string[]};
+export const svgElementAttributesLowercase = Object.fromEntries([...svgTags].map(tag => [tag.toLowerCase(), genericSvgAttributes])) satisfies {[key in keyof SVGElementTagNameMap]?: readonly string[]};
+
+// {
+// 	circle: [...genericSvgAttributes, "r"],
+// 	svg: [...genericSvgAttributes, "xmlns", "version", "xmlns:xlink", "viewBox", "preserveAspectRatio"],
+// 	path: [...genericSvgAttributes, "d"],
+// 	tspan: [...genericSvgAttributes, "text-anchor"],
+// 	text: [...genericSvgAttributes],
+// 	g: [...genericSvgAttributes],
+// 	feFlood: [...genericSvgAttributes],
+// 	feColorMatrix: [...genericSvgAttributes],
+// 	feOffset: [...genericSvgAttributes],
+// 	feGaussianBlur: [...genericSvgAttributes],
+// 	feBlend: [...genericSvgAttributes],
+// 	feComposite: [...genericSvgAttributes],
+// 	feDisplacementMap: [...genericSvgAttributes],
+// 	feSpecularLighting: [...genericSvgAttributes],
+// 	fePointLight: [...genericSvgAttributes],
+// 	feSpotLight: [...genericSvgAttributes],
+// 	feDiffuseLighting: [...genericSvgAttributes],
+// 	feConvolveMatrix: [...genericSvgAttributes],
+// 	filter: [...genericSvgAttributes],
+// 	radialGradient: [...genericSvgAttributes],
+// 	stop: [...genericSvgAttributes],
+// } as const satisfies {[key in keyof SVGElementTagNameMap]?: readonly string[]};
 
 
 /** custom values for specific element attributes (default: string) */

@@ -643,10 +643,7 @@ export class DOMUtils {
                     }
                     // normal function (TODO)
                     else {
-                        element.addEventListener(eventName, async () => {
-                            const {Routing} = await import("../../routing/frontend-routing.ts"); // TODO: better way to import
-                            Routing.renderEntrypoint(handler)
-                        });
+                        console.warn("Frontend functions for form action are not supported yet")
                     }
 
                     // save in [DOMUtils.EVENT_LISTENERS]

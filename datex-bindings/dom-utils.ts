@@ -21,11 +21,11 @@ export type appendableContent = appendableContentBase|Promise<appendableContentB
 export namespace DOMUtils {
     export type elWithUIXAttributes = Element & {
         [DOMUtils.EVENT_LISTENERS]:Map<keyof HTMLElementEventMap, Set<[(...args:any)=>any, boolean]>>
-        [DOMUtils.ATTR_BINDINGS]:Map<string, Datex.Ref>,
-        [DOMUtils.ATTR_DX_VALUES]:Map<string, Datex.Ref>,
-        [DOMUtils.STYLE_DX_VALUES]:Map<string, Datex.Ref<string>>,
+        [DOMUtils.ATTR_BINDINGS]:Map<string, Datex.ReactiveValue>,
+        [DOMUtils.ATTR_DX_VALUES]:Map<string, Datex.ReactiveValue>,
+        [DOMUtils.STYLE_DX_VALUES]:Map<string, Datex.ReactiveValue<string>>,
         [DOMUtils.STYLE_WEAK_PROPS]:Map<string, boolean>,
-        [DOMUtils.CHILDREN_DX_VALUES]:Set<Datex.Ref>,        
+        [DOMUtils.CHILDREN_DX_VALUES]:Set<Datex.ReactiveValue>,        
         [DOMUtils.DATEX_UPDATE_TYPE]?: string
     }
 }
@@ -63,11 +63,11 @@ export class DOMUtils {
         const element = <HTMLElement>template.content.firstChild;
         if (content != undefined) {
             // set html
-            if (Datex.Ref.collapseValue(content,true,true) instanceof this.context.HTMLElement) this.setElementHTML(element, <HTMLElement>content);
+            if (Datex.ReactiveValue.collapseValue(content,true,true) instanceof this.context.HTMLElement) this.setElementHTML(element, <HTMLElement>content);
             // set child nodes
             if (content instanceof Array) {
                 for (const el of content){
-                    if (Datex.Ref.collapseValue(el,true,true) instanceof this.context.HTMLElement) element.append(Datex.Ref.collapseValue(el,true,true))
+                    if (Datex.ReactiveValue.collapseValue(el,true,true) instanceof this.context.HTMLElement) element.append(Datex.ReactiveValue.collapseValue(el,true,true))
                     else {
                         const container = this.document.createElement("div");
                         this.setElementText(container, el);
@@ -94,7 +94,7 @@ export class DOMUtils {
     }
 
     private updateElementText = function (this:HTMLElement, text:unknown){
-        if (this instanceof Datex.Ref) console.warn("update text invalid", this, text)
+        if (this instanceof Datex.ReactiveValue) console.warn("update text invalid", this, text)
         
         if (text instanceof Datex.Markdown) {
             this.innerHTML = (text.getHTML() as HTMLElement).children[0].innerHTML;
@@ -115,7 +115,7 @@ export class DOMUtils {
         if (html == undefined || html === false) element.innerHTML = '';
 
         // DatexValue
-        if (html instanceof Datex.Ref) {
+        if (html instanceof Datex.ReactiveValue) {
             this.updateElementHTML.call(element, html.val);
 
             // @ts-ignore: TODO: fix?
@@ -140,7 +140,7 @@ export class DOMUtils {
         if (text == undefined || text === false) element.innerText = '';
 
         // Datexv Ref
-        else if (text instanceof Datex.Ref) {
+        else if (text instanceof Datex.ReactiveValue) {
             this.updateElementText.call(element, text.val);
 
             text.observe(this.updateElementText, element);
@@ -172,14 +172,14 @@ export class DOMUtils {
         if (children instanceof this.context.DocumentFragment && children._uix_children) children = children._uix_children
 
         // is ref and iterable/element
-        if (!(parent instanceof this.context.DocumentFragment) && Datex.Ref.isRef(children) && (children instanceof Array || children instanceof Map || children instanceof Set)) {
+        if (!(parent instanceof this.context.DocumentFragment) && Datex.ReactiveValue.isRef(children) && (children instanceof Array || children instanceof Map || children instanceof Set)) {
             // is iterable ref
             // TODO: support promises
 
-            const ref:Datex.Ref = children instanceof Datex.Ref ? children : Datex.Pointer.getByValue(children)!;
+            const ref:Datex.ReactiveValue = children instanceof Datex.ReactiveValue ? children : Datex.Pointer.getByValue(children)!;
 
             if (!(<DOMUtils.elWithUIXAttributes><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES]) 
-                (<DOMUtils.elWithUIXAttributes><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES] = new Set<Datex.Ref>();
+                (<DOMUtils.elWithUIXAttributes><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES] = new Set<Datex.ReactiveValue>();
             (<DOMUtils.elWithUIXAttributes><unknown>parent)[DOMUtils.CHILDREN_DX_VALUES].add(ref)
 
             const startAnchor = new this.context.Comment("start " + Datex.Pointer.getByValue(children)?.idString())
@@ -230,7 +230,7 @@ export class DOMUtils {
             //     const scheduler = new TaskScheduler(true);
             //     let lastChildren: Node[] = [];
     
-            //     Datex.Ref.observeAndInit(children, () => {
+            //     Datex.ReactiveValue.observeAndInit(children, () => {
             //         scheduler.schedule(
             //                 Task(resolve => {
             //                     appendNew(parent, Array.isArray(children) ? children : [children], lastChildren, (e) => {
@@ -244,7 +244,7 @@ export class DOMUtils {
             //         null, 
             //         {
             //             recursive: false,
-            //             types: [Datex.Ref.UPDATE_TYPE.INIT]
+            //             types: [Datex.ReactiveValue.UPDATE_TYPE.INIT]
             //         }
             //     )
             // }
@@ -318,7 +318,7 @@ export class DOMUtils {
         }
 
         // Datex Ref
-        else if (value instanceof Datex.Ref) {
+        else if (value instanceof Datex.ReactiveValue) {
             return this.setLiveAttribute(element, attr, value, rootPath);
         }
 
@@ -335,12 +335,12 @@ export class DOMUtils {
         // bind value (used for datex-over-http updates)
         if (attr == "value" || attr == "checked") {
             if (!(<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_BINDINGS]) 
-                (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_BINDINGS] = new Map<string, Datex.Ref>();
+                (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_BINDINGS] = new Map<string, Datex.ReactiveValue>();
             (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_BINDINGS].set(attr, value)
         }
         else {
             if (!(<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_DX_VALUES]) 
-                (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_DX_VALUES] = new Map<string, Datex.Ref>();
+                (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_DX_VALUES] = new Map<string, Datex.ReactiveValue>();
             (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.ATTR_DX_VALUES].set(attr, value)
         }
  
@@ -351,7 +351,7 @@ export class DOMUtils {
 
             const handleSetVal = async (val:any) => {
                 try {
-                    await (value as Datex.Ref).setVal(val)
+                    await (value as Datex.ReactiveValue).setVal(val)
                     element.setCustomValidity("")
                     element.reportValidity()
                 }
@@ -422,14 +422,15 @@ export class DOMUtils {
         // default attributes
 
         const valid = this.setAttribute(element, attr, value.val, rootPath)
-        if (valid) {
+        // observe pointer value (TODO: this observe currently only works if value is a primitive pointer, otherwise only internal updates are reflected reactively, e.g. for style objects or arrays - this is handled in setAttribute)
+        if (value.is_js_primitive && valid) {
             const val = value;
             
             weakAction({element}, 
                 ({element}) => {
                     use (this, attr, rootPath, logger, val, isolatedScope);
 
-                    const handler = isolatedScope((v:any) => {
+                    const handler = isolatedScope((v:any,...args) => {
                         use (this, logger, rootPath, element, attr);
                         const deref = element.deref();
                         if (!deref) {
@@ -453,6 +454,8 @@ export class DOMUtils {
     }
 
 	private setAttribute(element: Element, attr:string, val:unknown, root_path?:string|URL): boolean {
+
+        if (element.tagName=="INPUT" && attr=="class") console.warn("setattr",attr,val)
 
         // special suffixes:
 
@@ -549,10 +552,10 @@ export class DOMUtils {
                         if (val) deref.showModal();
                         else deref.close()
                     });
-                    Datex.Ref.observeAndInit(theVal, handler);
+                    Datex.ReactiveValue.observeAndInit(theVal, handler);
                     return handler;
                 }, 
-                (handler) => use(Datex, theVal) && Datex.Ref.unobserve(theVal, handler)
+                (handler) => use(Datex, theVal) && Datex.ReactiveValue.unobserve(theVal, handler)
             );
             
         }
@@ -564,27 +567,49 @@ export class DOMUtils {
 
         // class mapping
         else if (attr == "class" && typeof val == "object") {
+
             const update = (key:string, val:Datex.RefOrValue<boolean>) => {
-                if (Datex.Ref.collapseValue(val, true, true)) element.classList.add(key);
+                if (Datex.ReactiveValue.collapseValue(val, true, true)) element.classList.add(key);
                 else element.classList.remove(key);
             }
             const updateAll = (obj: Record<string, Datex.RefOrValue<boolean>>) => {
                 for (const [key, val] of Object.entries(obj)) update(key, val);
             }
+
+            // handle array updates
+            let previousArray = [] as Array<string>;
+            const updateArray = (arr: Array<string>) => {
+                if (previousArray) {
+                    for (const key of previousArray) {
+                        if (!arr.includes(key)) {
+                            console.log("remove", key,previousArray)
+                            element.classList.remove(key);
+                        }
+                    }
+                }
+                element.classList.add(...arr);
+                previousArray = [...arr];
+            }
             
-            
-            if (Datex.Ref.isRef(val)) {
-                Datex.Ref.observe(val, (v, k, t) => {
-                    console.log(">>",v,k,t)
-                    if (t == Datex.Pointer.UPDATE_TYPE.INIT) updateAll(v);
-                    else if (typeof k == "string") update(k, v);
+            if (Datex.ReactiveValue.isRef(val)) {
+                Datex.ReactiveValue.observeAndInit(val, (v, k, t) => {
+                    // update class list from array
+                    if (val instanceof Array) updateArray(val);
+                    // update class list from object
+                    else {
+                        if (t == Datex.Pointer.UPDATE_TYPE.INIT) updateAll(v);
+                        else if (typeof k == "string") update(k, v);
+                    }  
                 })
             }
             // simple object with pointers as properties
             else {
-                updateAll(val);
-                for (const [key, value] of Object.entries(val)) {
-                    if (value instanceof Datex.Ref) value.observe(v => update(key, v));
+                if (val instanceof Array) updateArray(val);
+                else {
+                    updateAll(val);
+                    for (const [key, value] of Object.entries(val)) {
+                        if (value instanceof Datex.ReactiveValue) value.observe(v => update(key, v));
+                    }
                 }
             }
             
@@ -690,7 +715,7 @@ export class DOMUtils {
             this.setElementAttribute(element, "style", properties_object_or_property)
             return element;
         }
-        else properties = Datex.Ref.collapseValue(properties_object_or_property,true,true) as {[property:string]:Datex.CompatValue<string|number|undefined>};
+        else properties = Datex.ReactiveValue.collapseValue(properties_object_or_property,true,true) as {[property:string]:Datex.CompatValue<string|number|undefined>};
 
         if (properties) {
             for (const [property, value] of Object.entries(properties)) {
@@ -734,13 +759,13 @@ export class DOMUtils {
         else {
 
             // remember style ref binding
-            if (!weakBinding && Datex.Ref.isRef(value)) {
+            if (!weakBinding && Datex.ReactiveValue.isRef(value)) {
                 if (!(<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.STYLE_DX_VALUES]) 
-                    (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.STYLE_DX_VALUES] = new Map<string, Datex.Ref>();
+                    (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.STYLE_DX_VALUES] = new Map<string, Datex.ReactiveValue>();
                 (<DOMUtils.elWithUIXAttributes><unknown>element)[DOMUtils.STYLE_DX_VALUES].set(property, value)
             }
             
-            Datex.Ref.observeAndInit(value, (v,k,t) => {
+            Datex.ReactiveValue.observeAndInit(value, (v,k,t) => {
                 if (property == "display" && typeof v == "boolean") {
                     v = v ? (globalThis.CSS?.supports("display: revert-layer") ? "revert-layer" : "revert") : "none";
                 }
@@ -905,7 +930,7 @@ export class DOMUtils {
             })
         }
         // ref
-        else if (content instanceof Datex.Ref) {
+        else if (content instanceof Datex.ReactiveValue) {
             this.bindTextNode(textNode, content)
         }     
        
@@ -944,12 +969,12 @@ export class DOMUtils {
                     }  
                 });
 
-                Datex.Ref.observeAndInit(ref.deref(), handler);
+                Datex.ReactiveValue.observeAndInit(ref.deref(), handler);
                 return handler;
             }, 
             (handler, _, deps) => {
                 use(Datex);
-                Datex.Ref.unobserve(deps.ref, handler)
+                Datex.ReactiveValue.unobserve(deps.ref, handler)
             },
             {ref}
         );   

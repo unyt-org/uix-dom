@@ -68,11 +68,19 @@ export type validHTMLElementSpecificAttrs<TAG extends string> = TAG extends keyo
 	[key in (typeof htmlElementAttributes)[TAG][number]]: TAG extends keyof htmlElementAttributeValues ? (key extends keyof htmlElementAttributeValues[TAG] ? htmlElementAttributeValues[TAG][key] : string) : string
 } : unknown;
 
+// export type validHTMLElementSpecificAttrs<TAG extends string> = TAG extends keyof typeof htmlElementAttributes ? (
+// 	(TAG extends keyof htmlElementAttributeValues ? htmlElementAttributeValues[TAG] : unknown ) & {
+// 		[key in (typeof htmlElementAttributes)[TAG][number]]: TAG extends keyof htmlElementAttributeValues ? (key extends keyof htmlElementAttributeValues[TAG] ? unknown : string) : string
+// 	}
+// ) : Record<string,never>;
+
+
 export type validSVGElementSpecificAttrs<TAG extends string> = TAG extends keyof typeof svgElementAttributes ? {
 	[key in (typeof svgElementAttributes)[TAG][number]]: TAG extends keyof svgElementAttributeValues ? (key extends keyof svgElementAttributeValues[TAG] ? svgElementAttributeValues[TAG][key] : string) : string
 } : unknown;
 
 
+type a = validHTMLElementSpecificAttrs<"input">;
 
 /** attribute definitions used by multiple elements */ 
 
@@ -144,7 +152,7 @@ export type htmlElementAttributeValues = {
 
 	link: href & rel,
 
-	input: widthAndHeight & src & {
+	input: (widthAndHeight & src & {
 		autocomplete: "on"|"off"
 		autofocus: boolean
 		checked: boolean 
@@ -167,7 +175,34 @@ export type htmlElementAttributeValues = {
 		value: primitive|Date,
 		"value:out": Datex.Pointer,
 		"value:in": Datex.Pointer
-	},
+	}) 
+	// TODO: conditional attributes
+	// & (
+	// 	{
+	// 		"type": "text",
+	// 		value: primitive
+	// 	} |
+	// 	{
+	// 		"type": "number"|"range",
+	// 		value: number
+	// 	} |
+	// 	{
+	// 		"type": "date"|"time"|"datetime-local"|"month"|"week",
+	// 		value: number|string|Date
+	// 	} |
+	// 	{
+	// 		"type": "color",
+	// 		value: string
+	// 	} |
+	// 	{
+	// 		"type": "file",
+	// 		value: File
+	// 	} |
+	// 	{
+	// 		"type": "checkbox"|"radio",
+	// 		value: boolean
+	// 	}
+	// )
 
 	select: {
 		required: boolean,

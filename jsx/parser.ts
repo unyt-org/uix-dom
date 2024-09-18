@@ -22,7 +22,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 
 	function setChildren(element: Element, children: appendableContent|appendableContent[]|appendableContent[][], shadow_root: boolean) {
 		// is nested arrays in outer array
-		if (children instanceof Array && !Datex.Ref.isRef(children)) {
+		if (children instanceof Array && !Datex.ReactiveValue.isRef(children)) {
 			for (const child of children) {
 				setChildren(element, child, shadow_root);
 			}
@@ -98,7 +98,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 
 	function parseJSX(type: string | typeof Element | typeof DocumentFragment | ((...args:unknown[])=>Element|DocumentFragment), params: Record<string,unknown>, isJSXS = false): Element {
 
-		Datex.Ref.freezeCapturing = true;
+		Datex.ReactiveValue.freezeCapturing = true;
 		const isTemplate = (type as any)[IS_TEMPLATE] ?? false;
 		const isComponent = typeof type == "function" && (context.HTMLElement.isPrototypeOf(type) || type === context.DocumentFragment || context.DocumentFragment.isPrototypeOf(type))
 
@@ -167,7 +167,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 							callerModule
 						}))
 					});
-					Datex.Ref.freezeCapturing = false;
+					Datex.ReactiveValue.freezeCapturing = false;
 					return placeholder;
 				}
 
@@ -206,7 +206,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 			set_default_attributes, 
 			allow_invalid_attributes
 		});
-		Datex.Ref.freezeCapturing = false;
+		Datex.ReactiveValue.freezeCapturing = false;
 		return res;
 		
 	}

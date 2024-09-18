@@ -4,7 +4,11 @@ import type { validHTMLElementAttrs, validHTMLElementSpecificAttrs, validSVGElem
 type DomElement = Element;// HTMLElement // TODO: Element?
 
 
+type x = {[key: string]: Datex.RefOrValue<boolean>} & {$: any, $$: any}
+type y = x['$'];
+
 type RefOrValueUnion<U> = (U extends any ? Datex.RefOrValue<U> : never)
+
 
 declare global {
 	namespace JSX {
@@ -32,13 +36,14 @@ declare global {
 		// enable as workaround to allow {...[elements]} type checking to work correctly
 		// type childrenOrChildrenPromise = _childrenOrChildrenPromise|_childrenOrChildrenPromise[]
 
+		// TODO: fix htmlAttrs to support correct constraint validation for conditional attributes like input type/value
 		type htmlAttrs<T extends Record<string,unknown>, allowPromises extends boolean = false> = Partial<DatexValueObject<Omit<T, 'children'|'style'|'class'>, allowPromises>>
 
 		// Common attributes of the standard HTML elements and JSX components
 		// using _IntrinsicAttributes (not IntrinsicAttributes) to prevent jsx default type behaviour
 		type _IntrinsicAttributes<El extends HTMLElement = HTMLElement> = {
-			style?: Datex.RefOrValue<string|{[key: string]: Datex.RefOrValue<string>|Datex.RefOrValue<number>|Datex.RefOrValue<boolean>}>,
-			class?: Datex.RefOrValue<string|{[key: string]: Datex.RefOrValue<boolean>}>,
+			style?: Datex.RefOrValue<string> | Datex.ObjectRef<{[key: string]: string|number|boolean}> | {[key: string]: Datex.RefOrValue<string>|Datex.RefOrValue<number>|Datex.RefOrValue<boolean>},
+			class?: Datex.RefOrValue<string> | Datex.ObjectRef<{[key: string]: boolean}> | {[key: string]: Datex.RefOrValue<boolean>} | Datex.RefOrValue<string[]>,
 		} & htmlAttrs<validHTMLElementAttrs<El>>
 
 		// TODO: enable for UIX - Common attributes of the UIX components only
@@ -48,7 +53,7 @@ declare global {
 			[key in keyof T]: T[key] extends (...args:unknown[])=>unknown ? 
 				T[key] : 
 				(T[key] extends boolean ? 
-					Datex.RefOrValue<T[key]> : 
+					Datex.RefOrValue<T[key]>: 
 					(undefined extends T[key] ?
 						Datex.RefOrValue<T[key]> : 
 						RefOrValueUnion<T[key]>

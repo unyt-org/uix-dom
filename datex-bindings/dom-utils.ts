@@ -455,8 +455,6 @@ export class DOMUtils {
 
 	private setAttribute(element: Element, attr:string, val:unknown, root_path?:string|URL): boolean {
 
-        if (element.tagName=="INPUT" && attr=="class") console.warn("setattr",attr,val)
-
         // special suffixes:
 
         // non-module-relative paths if :route suffix

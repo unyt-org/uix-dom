@@ -118,7 +118,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 			delete props._debug;
 			console.log(type,children,props,params)
 		}
-	
+
 		let set_default_children = true;
 		let set_default_attributes = true;
 		let allow_invalid_attributes = true;
@@ -128,19 +128,20 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 			shadow_root = props['shadow-root']==true?'open':props['shadow-root'];
 			delete props['shadow-root'];
 		}
+
 	
 		// replace ShadowRoot with shadow-root
 		if (type === context.ShadowRoot) type = "shadow-root";
 		
 		if (typeof type === 'function') {
-	
+
 			// class component
 			if (isComponent) {
 				set_default_children = (type as any)[SET_DEFAULT_CHILDREN] ?? true;
 				set_default_attributes = (type as any)[SET_DEFAULT_ATTRIBUTES] ?? true;
 				if (set_default_children) delete params.children;
 	
-				element = new type(set_default_children ? props : {...props, children}) // uix component
+				element = new type(set_default_children ? Object.freeze(props) : Object.freeze({...props, children})) // uix component
 			}
 			// function component
 			else {
@@ -148,7 +149,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 				set_default_attributes = (type as any)[SET_DEFAULT_ATTRIBUTES];
 				if (set_default_children) delete params.children;
 	
-				element = type(params)
+				element = type(Object.freeze(params))
 
 				// async component, use uix-placeholder
 				if (element instanceof Promise) {

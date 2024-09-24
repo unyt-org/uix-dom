@@ -30,6 +30,11 @@ export namespace DOMUtils {
     }
 }
 
+type InputValidation = {
+    message: Datex.RefOrValue<string>,
+    enabled: boolean
+}
+
 export class DOMUtils {
 
     static readonly EVENT_LISTENERS: unique symbol = Symbol.for("DOMUtils.EVENT_LISTENERS");
@@ -48,6 +53,23 @@ export class DOMUtils {
 	constructor(public readonly context: DOMContext) {}
     get document() {return this.context.document}
 
+
+    /**
+     * Global settings for input validation.
+     * Per default, input values bound to number references are validated.
+     * Input validation for specific types can be disabled by setting the 'enabled' property to false,
+     * and custom validation messages can be set.
+     */
+    public defaultInputValidation: Record<'number'|'bigint', InputValidation> = {
+        'number': {
+            message: "Invalid number",
+            enabled: true,
+        },
+        'bigint': {
+            message: "Invalid integer",
+            enabled: true,
+        }
+    }
 
 	escapeHtml(str:string) {
         if (typeof str != "string") return "";
@@ -349,7 +371,27 @@ export class DOMUtils {
 
             const event = isSelectElement ? 'change' : 'input';
 
-            const handleSetVal = async (val:any) => {
+            const handleSetVal = async (val:any, type?: "number"|"bigint"|"boolean") => {
+                if (this.defaultInputValidation.number?.enabled && type == "number") {
+                    if (isNaN(Number(val))) {
+                        element.setCustomValidity(Datex.ReactiveValue.collapseValue(this.defaultInputValidation.number.message, true, true) as string)
+                        element.reportValidity()
+                        return;
+                    }
+                }
+
+                if (this.defaultInputValidation.bigint?.enabled && type == "bigint") {
+                    if (!val.match(/^-?\d+$/)) {
+                        element.setCustomValidity(Datex.ReactiveValue.collapseValue(this.defaultInputValidation.bigint.message, true, true) as string)
+                        element.reportValidity()
+                        return;
+                    }
+                }
+
+                if (type == "boolean") val = Boolean(val);
+                else if (type == "bigint") val = BigInt(val);
+                else if (type == "number") val = Number(val);
+
                 try {
                     await (value as Datex.ReactiveValue).setVal(val)
                     element.setCustomValidity("")
@@ -365,9 +407,9 @@ export class DOMUtils {
             // out
             if (attr == "value" || attr == "value:out") {
                 if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => handleSetVal(element.value))
-                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => handleSetVal(Number(element.value)))
-                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => handleSetVal(BigInt(element.value)))
-                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(Boolean(element.value)))
+                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => handleSetVal(element.value, "number"))
+                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => handleSetVal(element.value, "bigint"))
+                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(element.value, "boolean"))
                 else if (type.matchesType(Datex.Type.std.void) || type.matchesType(Datex.Type.std.null)) {console.warn("setting value attribute to " + type, element)}
                 else if (type.matchesType(Datex.Type.std.time)) element.addEventListener(event, () => {
                     handleSetVal(new Time((element as unknown as HTMLInputElement).valueAsDate ?? new Date((element as unknown as HTMLInputElement).value+"Z")))

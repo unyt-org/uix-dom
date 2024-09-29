@@ -176,7 +176,7 @@ export function getHTMLGenerator(context: DOMContext, domUtils: DOMUtils, jsx: R
 		const isTemplate = template?.raw instanceof Array && template instanceof Array;
 		// non template value - convert to HTML node
 		if (!isTemplate) {
-			return domUtils.getTextNode(template);
+			return domUtils.getNode(template);
 		}
 		// templatee
 		else {

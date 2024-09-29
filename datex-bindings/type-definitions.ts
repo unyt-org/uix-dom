@@ -34,7 +34,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			console.log(element)
 			throw new Error("element has no dataset, todo");
 		}
-		if (!element.hasAttribute("uix-ptr")) element.setAttribute("uix-ptr", pointer.id);
+		if (!element.hasAttribute("uix-ptr") && client_type == "deno") element.setAttribute("uix-ptr", pointer.id);
 
 		// @ts-ignore
 		if (element[OBSERVER]) return;
@@ -402,7 +402,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 		},
 
 		create_proxy(val, pointer) {
-			if (!val.hasAttribute("uix-ptr")) val.setAttribute("uix-ptr", pointer.id);
+			if (!val.hasAttribute("uix-ptr") && client_type == "deno") val.setAttribute("uix-ptr", pointer.id);
 
 			const cloneNodeOriginal = val.cloneNode.bind(val);
 

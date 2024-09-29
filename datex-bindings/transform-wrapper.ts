@@ -18,11 +18,11 @@ function appendToFragment(domUtils: DOMUtils, context: DOMContext, fragment: HTM
 export function getTransformWrapper(domUtils: DOMUtils, context: DOMContext) {
 	return {
 		// special uix-fragment wrapper for transforms
-		wrap_transform(val:any) {
-			const fragment = context.document.createElement("uix-fragment");
-			appendToFragment(domUtils, context, fragment, val);
-			return fragment;
-		},
+		// wrap_transform(val:any) {
+		// 	const fragment = context.document.createElement("uix-fragment");
+		// 	appendToFragment(domUtils, context, fragment, val);
+		// 	return fragment;
+		// },
 	
 		allow_transform_value(type: Datex.Type) {
 			return allDomTypes.has(type.root_type) || type.root_type.name == "uix" || "must be a DOM element"

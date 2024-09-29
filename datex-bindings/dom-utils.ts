@@ -945,9 +945,9 @@ export class DOMUtils {
             newNode = value;
         }
 
-        // unsupported value - create text node
+        // unsupported value - create text/content node
         if (!(newNode instanceof this.context.Node || newNode instanceof this.context.DocumentFragment || newNode instanceof this.context.Comment)) {
-            newNode = this.getTextNode(newNode);
+            newNode = this.getNode(newNode);
         }
 
         return {
@@ -956,9 +956,11 @@ export class DOMUtils {
         }
     }
 
-    getTextNode(content:any) {
-        const textNode = this.document.createTextNode("") as unknown as Text;
-        (textNode as any)[DX_VALUE] = content;
+    getNode(content:any) {
+        const contentVal = val(content);
+        // either use existing node or create new text node
+        const node = contentVal instanceof Node ? contentVal : this.document.createTextNode("") as unknown as Text;
+        (node as any)[DX_VALUE] = content;
 
         // lazy pointer or lazy pointer property
         if (
@@ -966,46 +968,62 @@ export class DOMUtils {
             (content instanceof PointerProperty && content.lazy_pointer)
         ) {
             content.onLoad(() => {
-                this.bindTextNode(textNode, content)
+                this.bindNode(node, content)
             })
         }
         // ref
         else if (content instanceof Datex.ReactiveValue) {
-            this.bindTextNode(textNode, content)
+            this.bindNode(node, content)
         }     
        
         else {
-            textNode.textContent = (content!=undefined && content!==false) ? (<any>content).toString() : ''
+            node.textContent = (content!=undefined && content!==false) ? (<any>content).toString() : ''
         }
 
-        return textNode;
+        return node;
     }
 
-    bindTextNode(textNode: Text, ref:Datex.RefLike<unknown>) {
-        weakAction({textNode, ref}, 
-            ({textNode, ref}) => {
+    bindNode(node: Node, ref:Datex.RefLike<unknown>) {
+
+        weakAction({node, ref}, 
+            ({node, ref}) => {
                 use (logger, Datex, isolatedScope);
+
+                let prevNode:{node?:WeakRef<Node>} = {node};
+
                 // TODO: dont reference 'ref' in handler, use args from handler
                 const handler = isolatedScope((...args:any[]) => {
-                    use (logger, ref, textNode);
+                    use (logger, ref, prevNode);
+
+                    let prevNodeDeref = prevNode.node?.deref()!;
 
                     const deref = ref.deref();
                     if (!deref) {
                         logger.warn("Undetected garbage collection (uix-w0001)");
                         return;
                     }
-                    const textNodeDeref = textNode.deref();
-                    if (!textNodeDeref) {
-                        logger.warn("Undetected garbage collection (uix-w0001)");
-                        return;
-                    }
-
                     try {
                         const val = deref.val;
-                        textNodeDeref.textContent = (val!=undefined && val!==false) ? (<any>val).toString() : ''
+
+                        // replace previous node if it is a node, otherwise update text content
+                        if (val instanceof Node) {
+                            prevNode.node = new WeakRef(val);
+                            prevNodeDeref.replaceWith(val);
+                        }
+                        else {
+                            if (!(prevNodeDeref instanceof Text)) {
+                                const node = document.createTextNode("");
+                                prevNode.node = new WeakRef(node);
+                                prevNodeDeref.replaceWith(node);
+                                prevNodeDeref = node;
+                            }
+                            prevNodeDeref.textContent = (val!=undefined && val!==false) ? (<any>val).toString() : ''
+                        }
+                        
                     }
-                    catch {
-                        textNodeDeref.textContent = ""
+                    catch (e) {
+                        console.error(e)
+                        prevNodeDeref.textContent = ""
                     }  
                 });
 

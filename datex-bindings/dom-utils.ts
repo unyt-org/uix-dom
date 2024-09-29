@@ -1091,6 +1091,6 @@ export class DOMUtils {
     }
 
     addProxy(element:Element) {
-        return $$(element)
+        return $(element)
     }
 }

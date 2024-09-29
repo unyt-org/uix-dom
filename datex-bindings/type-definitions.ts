@@ -328,7 +328,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 			for (const [name, handlers] of val[DOMUtils.EVENT_LISTENERS]??[]) {
 				const allowedHandlers = [];
 				for (const [handler] of handlers) {
-					allowedHandlers.push($$(handler))
+					allowedHandlers.push($(handler))
 				}
 				data.attr['on'+String(name)] = allowedHandlers;
 			}
@@ -411,7 +411,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 				const clone = cloneNodeOriginal(deep);
 				clone.removeAttribute("uix-ptr");
 				delete clone[Datex.DX_PTR];
-				return $$(clone);
+				return $(clone);
 			}
 
 			// TODO: (handled separately for components)

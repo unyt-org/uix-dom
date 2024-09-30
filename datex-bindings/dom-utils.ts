@@ -899,6 +899,12 @@ export class DOMUtils {
         let newNode: any;
 
         // is function
+
+        // collapse pointer if function
+        if (value instanceof Datex.ReactiveValue && typeof value.val == "function") {
+            value = value.val;
+        }
+
         if (typeof value == "function") {
             if (client_type == "deno") {
                 newNode = document.createElement("uix-placeholder");

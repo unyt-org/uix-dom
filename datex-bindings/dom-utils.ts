@@ -463,9 +463,11 @@ export class DOMUtils {
 
         // default attributes
 
-        const valid = this.setAttribute(element, attr, value.val, rootPath)
+        const currentVal = value.val;
+        const valid = this.setAttribute(element, attr, currentVal, rootPath)
         // observe pointer value (TODO: this observe currently only works if value is a primitive pointer, otherwise only internal updates are reflected reactively, e.g. for style objects or arrays - this is handled in setAttribute)
-        if (value.is_js_primitive && valid) {
+        const isPrimitive = (typeof currentVal != "object" || currentVal === null) && typeof currentVal != "function";
+        if (isPrimitive && valid) {
             const val = value;
             
             weakAction({element}, 

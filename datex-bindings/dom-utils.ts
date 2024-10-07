@@ -427,9 +427,9 @@ export class DOMUtils {
                         {element}, 
                         // init (called once)
                         ({element}) => {
-                            use (this, logger, val, rootPath, isolatedScope)
+                            use("allow-globals", this, logger, val, rootPath, isolatedScope)
                             const handler = isolatedScope(v => {
-                                use (this, logger, rootPath, element)
+                                use("allow-globals", this, logger, rootPath, element)
                                 const deref = element.deref();
                                 if (!deref) {
                                     logger.warn("Undetected garbage collection (uix-w0001)");
@@ -472,10 +472,10 @@ export class DOMUtils {
             
             weakAction({element}, 
                 ({element}) => {
-                    use (this, attr, rootPath, logger, val, isolatedScope);
+                    use("allow-globals", this, attr, rootPath, logger, val, isolatedScope);
 
                     const handler = isolatedScope((v:any,...args) => {
-                        use (this, logger, rootPath, element, attr);
+                        use("allow-globals", this, logger, rootPath, element, attr);
                         const deref = element.deref();
                         if (!deref) {
                             logger.warn("Undetected garbage collection (uix-w0001)");
@@ -583,9 +583,9 @@ export class DOMUtils {
 
             weakAction({element}, 
                 ({element}) => {
-                    use (theVal, logger, Datex, isolatedScope);
+                    use("allow-globals", theVal, logger, Datex, isolatedScope);
                     const handler = isolatedScope((val:any) => {
-                        use (logger, element);
+                        use("allow-globals", logger, element);
                         const deref = element.deref();
                         if (!deref) {
                             logger.warn("Undetected garbage collection (uix-w0001)");
@@ -597,7 +597,7 @@ export class DOMUtils {
                     Datex.ReactiveValue.observeAndInit(theVal, handler);
                     return handler;
                 }, 
-                (handler) => use(Datex, theVal) && Datex.ReactiveValue.unobserve(theVal, handler)
+                (handler) => use("allow-globals", Datex, theVal) && Datex.ReactiveValue.unobserve(theVal, handler)
             );
             
         }
@@ -995,13 +995,13 @@ export class DOMUtils {
 
         weakAction({node, ref}, 
             ({node, ref}) => {
-                use (logger, Datex, isolatedScope);
+                use("allow-globals", logger, Datex, isolatedScope);
 
                 let prevNode:{node?:WeakRef<Node>} = {node};
 
                 // TODO: dont reference 'ref' in handler, use args from handler
                 const handler = isolatedScope((...args:any[]) => {
-                    use (logger, ref, prevNode);
+                    use("allow-globals", logger, ref, prevNode);
 
                     let prevNodeDeref = prevNode.node?.deref()!;
 
@@ -1039,7 +1039,7 @@ export class DOMUtils {
                 return handler;
             }, 
             (handler, _, deps) => {
-                use(Datex);
+                use("allow-globals", Datex);
                 Datex.ReactiveValue.unobserve(deps.ref, handler)
             },
             {ref}

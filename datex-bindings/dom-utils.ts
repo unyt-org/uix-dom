@@ -348,11 +348,54 @@ export class DOMUtils {
         else return this.setAttribute(element, attr, value, rootPath)
     }
 
+    private async handleSetVal(ref: Datex.ReactiveValue, element: HTMLInputElement, val:any, type?: "number"|"bigint"|"boolean") {
+        if (this.defaultInputValidation.number?.enabled && type == "number") {
+            if (isNaN(Number(val))) {
+                element.setCustomValidity(Datex.ReactiveValue.collapseValue(this.defaultInputValidation.number.message, true, true) as string)
+                element.reportValidity()
+                return;
+            }
+        }
+
+        if (this.defaultInputValidation.bigint?.enabled && type == "bigint") {
+            if (!val.match(/^-?\d+$/)) {
+                element.setCustomValidity(Datex.ReactiveValue.collapseValue(this.defaultInputValidation.bigint.message, true, true) as string)
+                element.reportValidity()
+                return;
+            }
+        }
+
+        if (type == "boolean") val = Boolean(val);
+        else if (type == "bigint") val = BigInt(val);
+        else if (type == "number") val = Number(val);
+
+        try {
+            await ref.setVal(val)
+            element.setCustomValidity("")
+            element.reportValidity()
+        }
+        catch (e) {
+            const message = e?.message ?? e?.toString()
+            element.setCustomValidity(message)
+            element.reportValidity()
+        }
+    }
+
+
     private setLiveAttribute<T extends Element>(element:T, attr:string, value:Datex.RefLike<unknown>, rootPath?:string|URL):boolean {
         const isInputElement = element.tagName.toLowerCase() === "input";
         const isSelectElement = element.tagName.toLowerCase() === "select";
 
-        const type = Datex.Type.ofValue(value);
+        let type = Datex.Type.ofValue(value);
+        if (type instanceof Datex.Conjunction) {
+            // find a type that is a Datex.Type
+            for (const t of type) {
+                if (t instanceof Datex.Type) {
+                    type = t;
+                    break;
+                }
+            }
+        }
 
         // bind value (used for datex-over-http updates)
         if (attr == "value" || attr == "checked") {
@@ -370,46 +413,17 @@ export class DOMUtils {
         if ((isSelectElement || isInputElement) && (attr == "value:out" || attr == "value:in" || attr == "value")) {
 
             const event = isSelectElement ? 'change' : 'input';
-
-            const handleSetVal = async (val:any, type?: "number"|"bigint"|"boolean") => {
-                if (this.defaultInputValidation.number?.enabled && type == "number") {
-                    if (isNaN(Number(val))) {
-                        element.setCustomValidity(Datex.ReactiveValue.collapseValue(this.defaultInputValidation.number.message, true, true) as string)
-                        element.reportValidity()
-                        return;
-                    }
-                }
-
-                if (this.defaultInputValidation.bigint?.enabled && type == "bigint") {
-                    if (!val.match(/^-?\d+$/)) {
-                        element.setCustomValidity(Datex.ReactiveValue.collapseValue(this.defaultInputValidation.bigint.message, true, true) as string)
-                        element.reportValidity()
-                        return;
-                    }
-                }
-
-                if (type == "boolean") val = Boolean(val);
-                else if (type == "bigint") val = BigInt(val);
-                else if (type == "number") val = Number(val);
-
-                try {
-                    await (value as Datex.ReactiveValue).setVal(val)
-                    element.setCustomValidity("")
-                    element.reportValidity()
-                }
-                catch (e) {
-                    const message = e?.message ?? e?.toString()
-                    element.setCustomValidity(message)
-                    element.reportValidity()
-                }
-            }
+            const inputElement = element as unknown as HTMLInputElement;
 
             // out
             if (attr == "value" || attr == "value:out") {
-                if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => handleSetVal(element.value))
-                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => handleSetVal(element.value, "number"))
-                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => handleSetVal(element.value, "bigint"))
-                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(element.value, "boolean"))
+                if (!(type instanceof Datex.Type)) {
+                    console.warn("Value has no type", value);
+                }
+                else if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => this.handleSetVal(value, inputElement, inputElement.value))
+                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => this.handleSetVal(value, inputElement, inputElement.value, "number"))
+                else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => this.handleSetVal(value, inputElement, inputElement.value, "bigint"))
+                else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => this.handleSetVal(value, inputElement, inputElement.value, "boolean"))
                 else if (type.matchesType(Datex.Type.std.void) || type.matchesType(Datex.Type.std.null)) {console.warn("setting value attribute to " + type, element)}
                 else if (type.matchesType(Datex.Type.std.time)) element.addEventListener(event, () => {
                     handleSetVal(new Time((element as unknown as HTMLInputElement).valueAsDate ?? new Date((element as unknown as HTMLInputElement).value+"Z")))
@@ -456,7 +470,9 @@ export class DOMUtils {
         if (isInputElement && element.getAttribute("type") === "checkbox" && attr == "checked") {
             if (!(element instanceof this.context.HTMLInputElement)) throw new Error("the 'checked' attribute is only supported for <input> elements");
 
-            if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener('change', () => value.val = element.checked)
+            const inputElement = element as HTMLInputElement;
+
+            if (type.matchesType(Datex.Type.std.boolean)) inputElement.addEventListener('change', () => this.handleSetVal(value, inputElement, inputElement.checked, "boolean"))
             else if (type.matchesType(Datex.Type.std.void)) {console.warn("setting checked attribute to void")}
             else throw new Error("The type "+type+" is not supported for the 'checked' attribute of the <input> element");
         }
@@ -506,6 +522,12 @@ export class DOMUtils {
             attr = attr.replace(":route", "");
             root_path = undefined;
         }
+
+        // strip :in suffix
+        if (attr.endsWith(":in")) {
+            attr = attr.replace(":in", "");
+        }
+
 
         // display context event handler function
         if (attr.endsWith(":frontend")) {

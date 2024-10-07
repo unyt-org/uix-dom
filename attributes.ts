@@ -173,8 +173,8 @@ export type htmlElementAttributeValues = {
 		type: "button"|"checkbox"|"color"|"date"|"datetime-local"|"email"|"file"|"hidden"|"image"|"month"|"number"|"password"|"radio"|"range"|"reset"|"search"|"submit"|"tel"|"text"|"time"|"url"|"week",
 
 		value: primitive|Date,
-		"value:out": Datex.Pointer,
-		"value:in": Datex.Pointer
+		"value:out": primitive|Date,
+		"value:in": primitive|Date
 	}) 
 	// TODO: conditional attributes
 	// & (

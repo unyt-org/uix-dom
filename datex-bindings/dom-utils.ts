@@ -291,7 +291,7 @@ export class DOMUtils {
         const element = parent instanceof this.context.HTMLTemplateElement ? parent.content : parent;
 
         // Handle HTMLTextAreaElement element body
-        if (element instanceof HTMLTextAreaElement) {
+        if (element?.tagName?.toLowerCase?.() === "textarea") {
             const reactiveProps = children.find(e => e instanceof Datex.ReactiveValue);
             if (reactiveProps) {
                 this.setLiveAttribute(element, "value", reactiveProps);

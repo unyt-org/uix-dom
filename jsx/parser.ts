@@ -79,7 +79,8 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 				if (attr == "style" && (element as HTMLElement).style) domUtils.setCSS(element as HTMLElement, <any> val);
 				else {
 					const valid_attr = domUtils.setElementAttribute(element, attr, <any>val, module);
-					if (!allow_invalid_attributes && !valid_attr) logger.warn(`Attribute "${attr}" is not allowed for <${element.tagName.toLowerCase()}> element`)
+					if (!allow_invalid_attributes && !valid_attr)
+						logger.warn(`Attribute "${attr}" is not allowed for <${element.tagName.toLowerCase()}> element. If you believe this is a mistake, please open an issue at https://github.com/unyt-org/uix`);
 				}
 			}
 		}

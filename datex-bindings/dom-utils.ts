@@ -83,6 +83,7 @@ export class DOMUtils {
         html = html.trim();
         template.innerHTML = html;
         const element = <HTMLElement>template.content.firstChild;
+
         if (content != undefined) {
             // set html
             if (Datex.ReactiveValue.collapseValue(content,true,true) instanceof this.context.HTMLElement) this.setElementHTML(element, <HTMLElement>content);
@@ -154,7 +155,7 @@ export class DOMUtils {
         // unobserve?
         this.element_bound_html_values.get(element)?.unobserve(element);
         this.element_bound_text_values.get(element)?.unobserve(element);
-        
+
         // @ts-ignore markdown flag
         element._use_markdown = markdown;
 
@@ -163,6 +164,7 @@ export class DOMUtils {
 
         // Datexv Ref
         else if (text instanceof Datex.ReactiveValue) {
+            
             this.updateElementText.call(element, text.val);
 
             text.observe(this.updateElementText, element);
@@ -287,6 +289,15 @@ export class DOMUtils {
     _append<T extends Element|DocumentFragment>(parent:T, children:appendableContent[]):T {
         // use content if parent is <template>
         const element = parent instanceof this.context.HTMLTemplateElement ? parent.content : parent;
+
+        // Handle HTMLTextAreaElement element body
+        if (element instanceof HTMLTextAreaElement) {
+            const reactiveProps = children.find(e => e instanceof Datex.ReactiveValue);
+            if (reactiveProps) {
+                this.setLiveAttribute(element, "value", reactiveProps);
+                return parent;
+            }
+        }
 
         for (let child of children) {
             child = (child as any)?.[JSX_INSERT_STRING] ? (child as any).val : child; // collapse safely injected strings

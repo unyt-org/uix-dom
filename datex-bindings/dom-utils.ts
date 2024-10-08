@@ -649,7 +649,6 @@ export class DOMUtils {
                 if (previousArray) {
                     for (const key of previousArray) {
                         if (!arr.includes(key)) {
-                            console.log("remove", key,previousArray)
                             element.classList.remove(key);
                         }
                     }

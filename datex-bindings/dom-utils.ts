@@ -318,7 +318,6 @@ export class DOMUtils {
             (<readonly string[]>svgElementAttributesLowercase[<keyof typeof svgElementAttributesLowercase>element.tagName.toLowerCase()])?.includes(<typeof svgElementAttributes[keyof typeof svgElementAttributes][number]>attr) )) {
                 return false;
         }
-
         
         value = value?.[JSX_INSERT_STRING] ? value.val : value; // collapse safely injected strings
 
@@ -385,7 +384,7 @@ export class DOMUtils {
     private setLiveAttribute<T extends Element>(element:T, attr:string, value:Datex.RefLike<unknown>, rootPath?:string|URL):boolean {
         const isInputElement = element.tagName.toLowerCase() === "input";
         const isSelectElement = element.tagName.toLowerCase() === "select";
-
+        const isTextareaElement = element.tagName.toLowerCase() === "textarea";
         let type = Datex.Type.ofValue(value);
         if (type instanceof Datex.Conjunction) {
             // find a type that is a Datex.Type
@@ -410,7 +409,7 @@ export class DOMUtils {
         }
  
         // :out attributes
-        if ((isSelectElement || isInputElement) && (attr == "value:out" || attr == "value:in" || attr == "value")) {
+        if ((isSelectElement || isInputElement || isTextareaElement) && (attr == "value:out" || attr == "value:in" || attr == "value")) {
 
             const event = isSelectElement ? 'change' : 'input';
             const inputElement = element as unknown as HTMLInputElement;

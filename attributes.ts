@@ -112,6 +112,20 @@ const alt = "alt" as const;
 type rel = {
 	rel: "alternate"|"author"|"bookmark"|"canonical"|"dns-prefetch"|"external"|"help"|"icon"|"license"|"manifest"|"me"|"modulepreload"|"next"|"nofollow"|"noreferrer"|"opener"|"pingback"|"preconnect"|"prefetch"|"preload"|"prerender"|"prev"|"privacy-policy"|"search"|"stylesheet"|"tag"|"terms-of-service"
 }
+const input = ["spellcheck", "wrap", "autocapitalize", "autocomplete", "autofocus", "maxlength", "minlength", "disabled", "placeholder", "readonly", "required"] as const;
+type input = {
+	spellcheck: boolean | "true" | "false" | "default",
+	wrap: "hard" | "soft" | "off",
+	autocapitalize: "on" | "off" | "sentences" | "none" | "words" | "characters",
+	autocomplete: boolean | "on" | "off" | string,
+	autofocus: boolean,
+	maxlength: htmlNumber|string,
+	minlength: htmlNumber|string,
+	disabled: boolean,
+	placeholder: primitive,
+	readonly: boolean,
+	required: boolean
+}
 
 type MediaStream = any; // TODO:
 
@@ -124,7 +138,7 @@ export const htmlElementAttributes = {
 	script: [...src, "type", "async", "defer", "nomodule", "crossorigin", "integrity", "referrerpolicy"],
 
 	progress: ["value", "max", "min"],
-	input: [alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out", "value:in"],
+	input: [...input, alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out", "value:in"],
 	button: ["type", "disabled", "form"],
 	form: ["method", "enctype", "action", "rel"],
 	img: [alt, ...src, ...widthAndHeight, "border", "crossorigin", "ismap", "loading", "longdesc", "referrerpolicy", "sizes", "srcset", "usemap"],
@@ -134,7 +148,7 @@ export const htmlElementAttributes = {
 	source: [...src, "type"],
 	label: ["for"],
 	video: [...src, ...widthAndHeight, "autoplay", "controls", "loop", "muted", "poster", "preload", "playsinline"],
-	textarea: ["placeholder"],
+	textarea: [...input, "name", "value", "value:out", "value:in", "cols", "rows"],
 	option: ["value", "selected", "disabled"],
 	select: ["value", "required"],
 	dialog: ["open"],
@@ -151,10 +165,8 @@ export type htmlElementAttributeValues = {
 	},
 
 	link: href & rel,
-
-	input: (widthAndHeight & src & {
-		autocomplete: "on"|"off"
-		autofocus: boolean
+	
+	input: (widthAndHeight & src & input & {
 		checked: boolean 
 		dirname: `${string}.dir`
 		disabled: boolean
@@ -251,10 +263,13 @@ export type htmlElementAttributeValues = {
 		poster: string|URL,
 		preload: "auto"|"metadata"|"none"
 	},
-	textarea: widthAndHeight & {
-		placeholder: string
+	textarea: widthAndHeight & input & {
+		rows: htmlNumber|string,
+		cols: htmlNumber|string,
+		value: string,
+		"value:out": string,
+		"value:in": string
 	},
-
 	option: {
 		selected: boolean,
 		disabled: boolean,

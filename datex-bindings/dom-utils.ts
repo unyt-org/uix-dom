@@ -529,6 +529,20 @@ export class DOMUtils {
         }
 
 
+        // special attributes--------------
+
+        // update checkbox checked property (bug?)
+        if (element instanceof HTMLInputElement && attr == "checked") {
+            element.checked = val as boolean;
+        }
+
+        // update muted property
+        else if (element instanceof HTMLMediaElement && attr == "muted") {
+            element.muted = val as boolean;
+        }
+
+        // --------------------------------
+
         // display context event handler function
         if (attr.endsWith(":frontend")) {
             if (typeof val !== "function") throw new Error(`Invalid value for attribute "${attr}" - must be a function`)
@@ -576,16 +590,6 @@ export class DOMUtils {
             else {
                 (element as HTMLInputElement).value = this.formatAttributeValue(val, root_path, element)
             }
-        }
-
-        // update checkbox checked property (bug?)
-        else if (element instanceof HTMLInputElement && attr == "checked") {
-            element.checked = val as boolean;
-        }
-
-        // update muted property
-        else if (element instanceof HTMLMediaElement && attr == "muted") {
-            element.muted = val as boolean;
         }
 
         // set datex-update

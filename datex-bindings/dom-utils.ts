@@ -193,12 +193,15 @@ export class DOMUtils {
     append<T extends Element|DocumentFragment>(parent:T, children:appendableContent|appendableContent[]):T | undefined {
 
         // @ts-ignore extract children ref iterable from DocumentFragment
-        if (children instanceof this.context.DocumentFragment && children._uix_children) children = children._uix_children
+        if (children instanceof this.context.DocumentFragment && children._uix_children) children = children._uix_children;
+
+        const collapsedChildren = Datex.ReactiveValue.collapseValue(children);
 
         // is ref and iterable/element
-        if (!(parent instanceof this.context.DocumentFragment) && Datex.ReactiveValue.isRef(children) && (children instanceof Array || children instanceof Map || children instanceof Set)) {
+        if (!(parent instanceof this.context.DocumentFragment) && Datex.ReactiveValue.isRef(children) && (collapsedChildren instanceof Array || collapsedChildren instanceof Map || collapsedChildren instanceof Set)) {
             // is iterable ref
             // TODO: support promises
+            children = collapsedChildren;
 
             const ref:Datex.ReactiveValue = children instanceof Datex.ReactiveValue ? children : Datex.Pointer.getByValue(children)!;
 
@@ -739,13 +742,24 @@ export class DOMUtils {
                     const eventName = "submit";
 
                     // backend function
-                    const ptr = Datex.Pointer.getByValue(handler);
-                    if (ptr && !ptr.is_origin) {
-                        element.setAttribute("action", `/@uix/form-action/${ptr.idString()}`);
+                    let ptr = Datex.Pointer.getByValue(handler);
+
+                    if (!ptr) {
+                        if (client_type == "deno") {
+                            ptr = Datex.Pointer.createOrGet(handler);
+                            ptr.is_persistent = true;
+                            // TODO: garbage collection for ptr when form element is garbage collected
+                        }
+                        else {
+                            console.warn("Frontend functions for form action are not supported yet")
+                        }
                     }
-                    // normal function (TODO)
-                    else {
+
+                    if (client_type == "browser" && ptr?.is_origin) {
                         console.warn("Frontend functions for form action are not supported yet")
+                    }
+                    else {
+                        element.setAttribute("action", `/@uix/form-action/${ptr.idString()}`);
                     }
 
                     // save in [DOMUtils.EVENT_LISTENERS]
@@ -988,6 +1002,11 @@ export class DOMUtils {
             newNode = value;
         }
 
+        // // is uix-fragment: no additional reactive wrapper needed, just return the fragment
+        // if (newNode instanceof Datex.ReactiveValue && newNode.val instanceof HTMLElement && newNode.val.tagName.toLowerCase() == "uix-fragment") {
+        //     newNode = newNode.val;
+        // }
+
         // unsupported value - create text/content node
         if (!(newNode instanceof this.context.Node || newNode instanceof this.context.DocumentFragment || newNode instanceof this.context.Comment)) {
             newNode = this.getNode(newNode);
@@ -1028,9 +1047,9 @@ export class DOMUtils {
 
     bindNode(node: Node, ref:Datex.RefLike<unknown>) {
 
-        weakAction({node, ref}, 
-            ({node, ref}) => {
-                use("allow-globals", logger, Datex, isolatedScope);
+        weakAction({node}, 
+            ({node}) => {
+                use("allow-globals", logger, Datex, isolatedScope, ref);
 
                 let prevNode:{node?:WeakRef<Node>} = {node};
 
@@ -1040,16 +1059,16 @@ export class DOMUtils {
 
                     let prevNodeDeref = prevNode.node?.deref()!;
 
-                    const deref = ref.deref();
-                    if (!deref) {
-                        logger.warn("Undetected garbage collection (uix-w0001)");
-                        return;
-                    }
                     try {
-                        const val = deref.val;
+                        let val = ref.val;
 
                         // replace previous node if it is a node, otherwise update text content
                         if (val instanceof Node) {
+                            if (val instanceof DocumentFragment) {
+                                const childNodes = val.childNodes;
+                                val = document.createElement("uix-fragment");
+                                val.append(...childNodes);
+                            }
                             prevNode.node = new WeakRef(val);
                             prevNodeDeref.replaceWith(val);
                         }
@@ -1065,19 +1084,22 @@ export class DOMUtils {
                         
                     }
                     catch (e) {
+                        console.log("Error binding node", ref, ref.val, prevNodeDeref)
                         console.error(e)
-                        prevNodeDeref.textContent = ""
                     }  
                 });
 
-                Datex.ReactiveValue.observeAndInit(ref.deref(), handler);
+                // TODO: potential memory leak
+                if (ref instanceof Datex.Pointer) ref.is_persistent = true;
+
+                Datex.ReactiveValue.observeAndInit(ref, handler);
                 return handler;
             }, 
             (handler, _, deps) => {
                 use("allow-globals", Datex);
-                Datex.ReactiveValue.unobserve(deps.ref, handler)
-            },
-            {ref}
+                ref.is_persistent = false;
+                Datex.ReactiveValue.unobserve(ref, handler)
+            }
         );   
     }
 

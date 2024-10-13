@@ -216,7 +216,7 @@ export function loadDefinitions(context: DOMContext, domUtils: DOMUtils, options
 		},
 
 		// enable <uix-fragment> wrapping
-		...transformWrapper,
+		//...transformWrapper,
 
 		// called when replicating from state
 		cast_no_tuple(val, type, _ctx, _origin, assigningPtrId) {

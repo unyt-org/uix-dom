@@ -24,8 +24,16 @@ export function getTransformWrapper(domUtils: DOMUtils, context: DOMContext) {
 			return fragment;
 		},
 	
+		unwrap_transform(val:any) {
+			// // remove outer uix-fragment wrapper if present
+			// if (val instanceof context.HTMLElement && val.tagName == "UIX-FRAGMENT" && val.children.length == 1) {
+			// 	return val.children[0];
+			// }
+			return val;	
+		},
+
 		allow_transform_value(type: Datex.Type) {
-			return allDomTypes.has(type.root_type) || type.root_type.name == "uix" || "must be a DOM element"
+			return type == Datex.Type.std.void || type==Datex.Type.std.null || allDomTypes.has(type.root_type) || type.root_type.name == "uix" || "must be a DOM element"
 		},
 	
 		handle_transform(val:any, ptr:Datex.Pointer) {

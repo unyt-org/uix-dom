@@ -142,7 +142,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 				set_default_attributes = (type as any)[SET_DEFAULT_ATTRIBUTES] ?? true;
 				if (set_default_children) delete params.children;
 	
-				element = new type(set_default_children ? Object.freeze(props) : Object.freeze({...props, children})) // uix component
+				element = new type(set_default_children ? props : {...props, children}) // uix component
 			}
 			// function component
 			else {
@@ -150,7 +150,7 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 				set_default_attributes = (type as any)[SET_DEFAULT_ATTRIBUTES];
 				if (set_default_children) delete params.children;
 	
-				element = type(Object.freeze(params))
+				element = type(params)
 
 				// async component, use uix-placeholder
 				if (element instanceof Promise) {

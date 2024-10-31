@@ -370,7 +370,7 @@ export class DOMUtils {
                 else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(Boolean(element.value)))
                 else if (type.matchesType(Datex.Type.std.void) || type.matchesType(Datex.Type.std.null)) {console.warn("setting value attribute to " + type, element)}
                 else if (type.matchesType(Datex.Type.std.time)) element.addEventListener(event, () => {
-                    handleSetVal(new Time((element as unknown as HTMLInputElement).valueAsDate ?? new Date((element as unknown as HTMLInputElement).value+"Z")))
+                    handleSetVal(new Time((element as unknown as HTMLInputElement).valueAsDate ?? new Date((element as unknown as HTMLInputElement).value)))
                 })
                 else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
             }
@@ -676,7 +676,7 @@ export class DOMUtils {
         if (root_path==undefined) return val?.toString?.() ?? ""
         else if (typeof val == "string" && (val.startsWith("./") || val.startsWith("../"))) return new URL(val, root_path).toString();
         else if (val instanceof Date) {
-            if ((element as HTMLInputElement).type == "datetime-local") return val.toISOString().slice(0,-8);
+            if ((element as HTMLInputElement).type == "datetime-local") return new Date(val.getTime() + new Date().getTimezoneOffset() * -60 * 1000).toISOString().slice(0,-8);
             else return val.toISOString().slice(0,10);
         }
         else return val?.toString?.() ?? ""

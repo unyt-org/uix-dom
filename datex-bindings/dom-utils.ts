@@ -2,7 +2,7 @@ import { Datex } from "datex-core-legacy"
 import { defaultElementAttributes, elementEventHandlerAttributes, htmlElementAttributes, mathMLTags, svgElementAttributes, svgElementAttributesLowercase, svgTags } from "../attributes.ts";
 
 import { IterableHandler } from "datex-core-legacy/utils/iterable-handler.ts";
-import { DX_VALUE, DX_REPLACE, logger, PointerProperty } from "datex-core-legacy/datex_all.ts";
+import { DX_VALUE, DX_REPLACE, PointerProperty } from "datex-core-legacy/datex_all.ts";
 import type { DOMContext } from "../dom/DOMContext.ts";
 import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
@@ -10,8 +10,10 @@ import { weakAction } from "datex-core-legacy/utils/weak-action.ts";
 import { LazyPointer } from "datex-core-legacy/runtime/lazy-pointer.ts";
 import { isolatedScope } from "datex-core-legacy/utils/isolated-scope.ts";
 import { Time } from "datex-core-legacy/types/time.ts";
-
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
+
+
+const logger = new Datex.Logger("UIX");
 
 type appendableContentBase = Datex.RefOrValue<Element|DocumentFragment|string|number|bigint|boolean>|Promise<appendableContent>;
 export type appendableContent = appendableContentBase|Promise<appendableContentBase>
@@ -331,6 +333,12 @@ export class DOMUtils {
             (<readonly string[]>htmlElementAttributes[<keyof typeof htmlElementAttributes>element.tagName.toLowerCase()])?.includes(<typeof htmlElementAttributes[keyof typeof htmlElementAttributes][number]>attr) ||
             (<readonly string[]>svgElementAttributesLowercase[<keyof typeof svgElementAttributesLowercase>element.tagName.toLowerCase()])?.includes(<typeof svgElementAttributes[keyof typeof svgElementAttributes][number]>attr) )) {
                 return false;
+        }
+
+        // warnings for invalid attribute usage
+        // setting the 'value' attribute of a <input> checkbox element
+        if (element instanceof this.context.HTMLInputElement && attr == "value" && element.getAttribute("type") == "checkbox" && typeof Datex.ReactiveValue.collapseValue(value, true, true) == "boolean") {
+            logger.warn(`You are assigning the "value" attribute of an <input type="checkbox"> to a boolean value. This has no effect on the checkbox state. Did you mean to use the 'checked' attribute instead\\?`)
         }
         
         value = value?.[JSX_INSERT_STRING] ? value.val : value; // collapse safely injected strings

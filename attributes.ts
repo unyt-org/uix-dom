@@ -309,7 +309,7 @@ export const svgTags = new Set(["animate", "animateMotion", "animateTransform", 
 // TODO: name collisions: "a", "script", "style",  "title", 
 
 const genericSvgAttributes = [
-	...cXY, ...widthAndHeight, ...xy, "fill", "fill-rule", "stroke", "stroke-width", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "transform",
+	...cXY, ...widthAndHeight, ...xy, "x1","x2","y1","y2", "mask", "rx", "ry", "fill", "fill-rule", "stroke", "stroke-width", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "transform",
 	"mode", "in", "in2", "result", "filterUnits", "color-interpolation-filters","stop-color","offset","gradientUnits","gradientTransform",
 	"xmlns", "version", "xmlns:xlink", "viewBox", "preserveAspectRatio", "d", "stdDeviation", "values", "type", "clip-path", "text-anchor", "filter", "flood-opacity", "operator", "dy", "fill-opacity", "r"
 ] as const;

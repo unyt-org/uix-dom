@@ -338,7 +338,7 @@ export class DOMUtils {
         // warnings for invalid attribute usage
         // setting the 'value' attribute of a <input> checkbox element
         if (element instanceof this.context.HTMLInputElement && attr == "value" && element.getAttribute("type") == "checkbox" && typeof Datex.ReactiveValue.collapseValue(value, true, true) == "boolean") {
-            logger.warn(`You are assigning the "value" attribute of an <input type="checkbox"> to a boolean value. This has no effect on the checkbox state. Did you mean to use the 'checked' attribute instead\\?`)
+            logger.warn(`You are assigning the "value" attribute of an <input type="checkbox"> to a boolean value. This has no effect on the checkbox state. Did you mean to use the "checked" attribute instead\\?`)
         }
         
         value = value?.[JSX_INSERT_STRING] ? value.val : value; // collapse safely injected strings

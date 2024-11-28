@@ -215,6 +215,8 @@ export class DOMUtils {
             const endAnchor = new this.context.Comment("end " + Datex.Pointer.getByValue(children)?.idString())
             parent.append(startAnchor, endAnchor)
 
+            const Comment = this.context.Comment;
+
             const iterableHandler = new IterableHandler<appendableContent, Node>(children as appendableContent[], {
                 map: (v,k) => {
                     const {node: el} = this.valueToDOMNode(v);
@@ -222,15 +224,37 @@ export class DOMUtils {
                 },
                 onEntryRemoved: (v,k) => {
                     // remove kth child
-                    // console.warn("dom remove", k,parent.childNodes[k+1])
                     parent.childNodes[k+1]?.remove();
                 },
-                onNewEntry(v,k)  {
-                    // console.warn("dom new", k)
+                onNewEntry(v,k,p)  {
                     // if kth child exists, replace, otherwise append at end
                     const current = parent.childNodes[k+1];
                     if (current && current != endAnchor) parent.replaceChild(v, current);
-                    else parent.insertBefore(v, endAnchor);
+                    else {
+                        // fill gap if k is larger than current children
+                        if (k > parent.childNodes.length-2) {
+                            for (let i = parent.childNodes.length-2; i < k; i++) {
+                                parent.insertBefore(new Comment("empty"), endAnchor);
+                            }
+                        }
+                        parent.insertBefore(v, endAnchor);
+                    }
+                    // let previous:Node = startAnchor;
+
+                    // for (let prevIndex = k - 1; prevIndex >= 0; prevIndex--) {
+                    //     try {
+                    //         if (this.entries.has(prevIndex)) {
+                    //             previous = this.entries.get(prevIndex)!;
+                    //             break;
+                    //         }
+                    //     }
+                    //     catch (e) {
+                    //         console.log("TODO fix", e)
+                    //     }
+                        
+                    // }
+
+                    // parent.insertBefore(v, previous.nextSibling)
                 },
                 onEmpty: () => {
                     let current:Node|null|undefined = startAnchor.nextSibling;

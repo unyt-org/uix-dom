@@ -221,25 +221,16 @@ export class DOMUtils {
                     return el;
                 },
                 onEntryRemoved: (v,k) => {
-                    if (parent.contains(v)) parent.removeChild(v);
+                    // remove kth child
+                    // console.warn("dom remove", k,parent.childNodes[k+1])
+                    parent.childNodes[k+1]?.remove();
                 },
                 onNewEntry(v,k)  {
-                    let previous:Node = startAnchor;
-
-                    for (let prevIndex = k - 1; prevIndex >= 0; prevIndex--) {
-                        try {
-                            if (this.entries.has(prevIndex)) {
-                                previous = this.entries.get(prevIndex)!;
-                                break;
-                            }
-                        }
-                        catch (e) {
-                            console.log("TODO fix", e)
-                        }
-                        
-                    }
-
-                    parent.insertBefore(v, previous.nextSibling)
+                    // console.warn("dom new", k)
+                    // if kth child exists, replace, otherwise append at end
+                    const current = parent.childNodes[k+1];
+                    if (current && current != endAnchor) parent.replaceChild(v, current);
+                    else parent.insertBefore(v, endAnchor);
                 },
                 onEmpty: () => {
                     let current:Node|null|undefined = startAnchor.nextSibling;

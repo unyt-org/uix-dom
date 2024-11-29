@@ -224,7 +224,12 @@ export class DOMUtils {
                 },
                 onEntryRemoved: (v,k) => {
                     // remove kth child
-                    parent.childNodes[k+1]?.remove();
+                    const node = parent.childNodes[k+1];
+                    // out of bounds
+                    if (!node || node === endAnchor || node === startAnchor){
+                        return;
+                    }
+                    node.remove();
                 },
                 onNewEntry(v,k,p)  {
                     // if kth child exists, replace, otherwise append at end
@@ -239,22 +244,6 @@ export class DOMUtils {
                         }
                         parent.insertBefore(v, endAnchor);
                     }
-                    // let previous:Node = startAnchor;
-
-                    // for (let prevIndex = k - 1; prevIndex >= 0; prevIndex--) {
-                    //     try {
-                    //         if (this.entries.has(prevIndex)) {
-                    //             previous = this.entries.get(prevIndex)!;
-                    //             break;
-                    //         }
-                    //     }
-                    //     catch (e) {
-                    //         console.log("TODO fix", e)
-                    //     }
-                        
-                    // }
-
-                    // parent.insertBefore(v, previous.nextSibling)
                 },
                 onEmpty: () => {
                     let current:Node|null|undefined = startAnchor.nextSibling;
@@ -1119,7 +1108,7 @@ export class DOMUtils {
                 return handler;
             }, 
             (handler, _, deps) => {
-                use("allow-globals", Datex);
+                use("allow-globals", Datex, ref);
                 ref.is_persistent = false;
                 Datex.ReactiveValue.unobserve(ref, handler)
             }

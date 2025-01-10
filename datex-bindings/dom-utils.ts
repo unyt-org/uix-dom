@@ -842,7 +842,7 @@ export class DOMUtils {
      * Set css property of an element, updates reactively if pointer
      * If weakBinding is true, the binding is not preserved when transferring the element to another context
      */
-    setCSSProperty<T extends HTMLElement>(element:T, property:string, value:Datex.RefOrValue<string|number|undefined|boolean>, weakBinding = false):T{
+    setCSSProperty<T extends HTMLElement>(element:T, property:string, value:Datex.RefOrValue<string|number|undefined|boolean>, weakBinding = false, unit?: string):T{
         // convert camelCase to kebab-case
         property = property?.replace(/[A-Z]/g, x => `-${x.toLowerCase()}`);
         // none
@@ -883,9 +883,9 @@ export class DOMUtils {
                         // TODO: handle this case if trying to set global css variable on document (for reactive css)
                         return;
                     }
-                    if (element.style.setProperty) element.style.setProperty(property, this.getCSSProperty(<string>v))
+                    if (element.style.setProperty) element.style.setProperty(property, this.getCSSProperty(<string>v, undefined, unit));
                     // @ts-ignore style property access
-                    else element.style[property] = this.getCSSProperty(v);
+                    else element.style[property] = this.getCSSProperty(v, undefined, unit);
                 }
             }, undefined, undefined);
         }
@@ -919,16 +919,16 @@ export class DOMUtils {
     };
 
     // convert DatexCompatValue to css property
-    getCSSProperty(value:Datex.RefOrValue<number|string>, use_css_variables = true):string {
+    getCSSProperty(value:Datex.RefOrValue<number|string>, use_css_variables = true, unit?: string):string {
         // UIX color value
         if (use_css_variables && value instanceof Datex.PointerProperty && value.pointer.val == Theme.colors) {
             value = `var(--${value.key})`; // autmatically updated css variable
         }
 
-        // number value to px
-        if (typeof value == "number") return value.toString() + "px";
+        // number value to unit (default px)
+        if (typeof value == "number") return value.toString() + (unit||"px");
 
-        else if (use_css_variables) return value?.toString() ?? '';
+        else if (use_css_variables) return this.escapeCSSValue(value) ?? '';
         // try to collapse value
         else if (value!=undefined) {
             // css variable
@@ -936,11 +936,16 @@ export class DOMUtils {
             // css color name
             else if (!value.toString().startsWith("#")) return color_names[<keyof typeof color_names>value.toString().toLowerCase()] ?? ''
             // normal string value
-            else return value.toString()
+            else return this.escapeCSSValue(value);
         }
         else return '';
     }
 
+
+    escapeCSSValue(value: any) {
+        return value?.toString().replaceAll(/[;{}()]/g, '');
+    }
+    
 
     valuesToDOMElement(...values:any[]): Node|DocumentFragment {
         

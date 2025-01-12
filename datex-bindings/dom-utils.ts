@@ -921,9 +921,9 @@ export class DOMUtils {
     // convert DatexCompatValue to css property
     getCSSProperty(value:Datex.RefOrValue<number|string>, use_css_variables = true, unit?: string):string {
         // UIX color value
-        if (use_css_variables && value instanceof Datex.PointerProperty && value.pointer.val == Theme.colors) {
-            value = `var(--${value.key})`; // autmatically updated css variable
-        }
+        // if (use_css_variables && value instanceof Datex.PointerProperty && value.pointer.val == Theme.colors) {
+        //     value = `var(--${value.key})`; // autmatically updated css variable
+        // }
 
         // number value to unit (default px)
         if (typeof value == "number") return value.toString() + (unit||"px");
@@ -934,7 +934,7 @@ export class DOMUtils {
             // css variable
             if (value.toString().startsWith('var(--')) return this.context.getComputedStyle(this.document.documentElement).getPropertyValue(value?.toString().replace('var(','').replace(')','')).trim();
             // css color name
-            else if (!value.toString().startsWith("#")) return color_names[<keyof typeof color_names>value.toString().toLowerCase()] ?? ''
+            else if (!value.toString().startsWith("#")) return this.color_names[<keyof typeof this.color_names>value.toString().toLowerCase()] ?? ''
             // normal string value
             else return this.escapeCSSValue(value);
         }

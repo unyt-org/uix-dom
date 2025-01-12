@@ -943,7 +943,9 @@ export class DOMUtils {
 
 
     escapeCSSValue(value: any) {
-        return value?.toString().replaceAll(/[;{}()]/g, '');
+        return (value?.toString() as string).replace(/(;[\S\s]*)$/, (_, p1) => {
+            return '/*' + p1.replace(/\*\//, "* /") + '*/';
+        })
     }
     
 

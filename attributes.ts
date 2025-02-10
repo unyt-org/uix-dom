@@ -117,7 +117,7 @@ type input = {
 	spellcheck: boolean | "true" | "false" | "default",
 	wrap: "hard" | "soft" | "off",
 	autocapitalize: "on" | "off" | "sentences" | "none" | "words" | "characters",
-	autocomplete: boolean | "on" | "off" | string,
+	autocomplete: boolean | AutoFill,
 	autofocus: boolean,
 	maxlength: htmlNumber|string,
 	minlength: htmlNumber|string,
@@ -150,7 +150,7 @@ export const htmlElementAttributes = {
 	video: [...src, ...widthAndHeight, "autoplay", "controls", "loop", "muted", "poster", "preload", "playsinline"],
 	textarea: [...input, "name", "value", "value:out", "value:in", "cols", "rows"],
 	option: ["value", "selected", "disabled"],
-	select: ["value", "required"],
+	select: ["value", "autocomplete", "required"],
 	dialog: ["open"],
 	table: ["cellspacing", "cellpadding", "align", "width", "border"],
 	meta: ["content"],
@@ -218,7 +218,8 @@ export type htmlElementAttributeValues = {
 
 	select: {
 		required: boolean,
-		value: primitive
+		value: primitive,
+		autocomplete: boolean | AutoFill,
 	},
 
 	progress: {

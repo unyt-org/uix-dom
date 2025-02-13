@@ -787,9 +787,16 @@ export class DOMUtils {
     
         // normal attribute
         else {
-            if (val === false) element.removeAttribute(attr);
-            else if (val === true) element.setAttribute(attr, "");
-            else element.setAttribute(attr, this.formatAttributeValue(val, root_path, element));
+            if (val === false) {
+                if (element.hasAttribute(attr)) element.removeAttribute(attr);
+            }
+            else if (val === true) {
+                if (!element.hasAttribute(attr)) element.setAttribute(attr, "");
+            }
+            else {
+                const newValue = this.formatAttributeValue(val, root_path, element);
+                if (element.getAttribute(attr) !== newValue) element.setAttribute(attr, newValue);
+            }
         }
 
     

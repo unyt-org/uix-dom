@@ -28,7 +28,8 @@ export namespace DOMUtils {
         [DOMUtils.STYLE_DX_VALUES]:Map<string, Datex.ReactiveValue<string>>,
         [DOMUtils.STYLE_WEAK_PROPS]:Map<string, boolean>,
         [DOMUtils.CHILDREN_DX_VALUES]:Set<Datex.ReactiveValue>,        
-        [DOMUtils.DATEX_UPDATE_TYPE]?: string
+        [DOMUtils.DATEX_UPDATE_TYPE]?: string,
+        [DOMUtils.ATTR_SELECTED_BINDING]?: Datex.ReactiveValue
     }
 }
 
@@ -45,6 +46,7 @@ export class DOMUtils {
     static readonly STYLE_DX_VALUES: unique symbol = Symbol.for("DOMUtils.STYLE_DX_VALUES");
     static readonly STYLE_WEAK_PROPS: unique symbol = Symbol.for("DOMUtils.STYLE_WEAK_PROPS");
     static readonly CHILDREN_DX_VALUES: unique symbol = Symbol.for("DOMUtils.CHILDREN_DX_VALUES");
+    static readonly ATTR_SELECTED_BINDING: unique symbol = Symbol.for("DOMUtils.ATTR_SELECTED_BINDING");
 
     static readonly DATEX_UPDATE_TYPE: unique symbol = Symbol.for("DOMUtils.DATEX_UPDATE_TYPE");
     static readonly PLACEHOLDER_CONTENT: unique symbol = Symbol.for("DOMUtils.PLACEHOLDER_CONTENT");
@@ -344,6 +346,11 @@ export class DOMUtils {
         if (element instanceof this.context.HTMLInputElement && attr == "value" && element.getAttribute("type") == "checkbox" && typeof Datex.ReactiveValue.collapseValue(value, true, true) == "boolean") {
             logger.warn(`You are assigning the "value" attribute of an <input type="checkbox"> to a boolean value. This has no effect on the checkbox state. Did you mean to use the "checked" attribute instead\\?`)
         }
+
+        // value:selected is only allowed for input type="radio"
+        else if (attr == "value:selected" && !(element instanceof this.context.HTMLInputElement && (element as HTMLInputElement).type == "radio")) {
+            throw new Error("The \"value:selected\" attribute is only allowed for <input type=\"radio\"> elements");
+        }
         
         value = value?.[JSX_INSERT_STRING] ? value.val : value; // collapse safely injected strings
 
@@ -435,13 +442,13 @@ export class DOMUtils {
         }
  
         // :out attributes
-        if ((isSelectElement || isInputElement || isTextareaElement) && (attr == "value:out" || attr == "value:in" || attr == "value")) {
+        if ((isSelectElement || isInputElement || isTextareaElement) && (attr == "value:selected" || attr == "value:out" || attr == "value:in" || attr == "value")) {
 
             const event = isSelectElement ? 'change' : 'input';
             const inputElement = element as unknown as HTMLInputElement;
 
             // out
-            if (attr == "value" || attr == "value:out") {
+            if (attr == "value" || attr == "value:out" || attr == "value:selected") {
                 if (!(type instanceof Datex.Type)) {
                     console.warn("Value has no type", value);
                 }
@@ -451,11 +458,22 @@ export class DOMUtils {
                 else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => this.handleSetVal(value, inputElement, inputElement.value, "boolean"))
                 else if (type.matchesType(Datex.Type.std.void) || type.matchesType(Datex.Type.std.null)) {console.warn("setting value attribute to " + type, element)}
                 else if (type.matchesType(Datex.Type.std.time)) element.addEventListener(event, () => {
-                    handleSetVal(new Time((element as unknown as HTMLInputElement).valueAsDate ?? new Date((element as unknown as HTMLInputElement).value)))
+                    this.handleSetVal(value, inputElement, new Time((element as unknown as HTMLInputElement).valueAsDate ?? new Date((element as unknown as HTMLInputElement).value)), "time")
                 })
                 else throw new Error("The type "+type+" is not supported for the '"+attr+"' attribute of the <"+element.tagName.toLowerCase()+"> element");
+
+
+                // for all input elements that support a max, min or step attribute: listen for attribute changes and update the output value
+                if (isInputElement && (inputElement.type == "number" || inputElement.type == "range")) {
+                    const observer = new MutationObserver(() => {
+                        if (type.matchesType(Datex.Type.std.decimal)) this.handleSetVal(value, inputElement, inputElement.value, "number");
+                        else if (type.matchesType(Datex.Type.std.integer)) this.handleSetVal(value, inputElement, inputElement.value, "bigint");
+                    });
+                    observer.observe(inputElement, {attributes: true, attributeFilter: ["max", "min", "step"]})
+                }
+
             }
-         
+        
             // in
             if (attr == "value" || attr == "value:in") {
                 const valid = this.setAttribute(element, "value", value.val, rootPath)
@@ -486,6 +504,13 @@ export class DOMUtils {
                     );
                 }
                 return valid;
+            }
+
+            // value:selected initial state
+            if (attr == "value:selected") {
+                (<DOMUtils.elWithUIXAttributes><unknown>inputElement)[DOMUtils.ATTR_SELECTED_BINDING] = value;
+                // check if the defined value of the input is equal to the value of the pointer
+                if (inputElement.value == value.val) inputElement.checked = true;
             }
 
             return true;
@@ -596,7 +621,7 @@ export class DOMUtils {
         }
 
         // invalid :out attributes here
-        if (attr.endsWith(":out")) throw new Error("Invalid value for "+attr+" attribute - must be a pointer");
+        if (attr.endsWith(":out") || attr.endsWith(":selected")) throw new Error("Invalid value for "+attr+" attribute - must be a pointer");
 
         // value attribute
         else if (attr == "value") {
@@ -614,6 +639,13 @@ export class DOMUtils {
             // set value property
             else {
                 (element as HTMLInputElement).value = this.formatAttributeValue(val, root_path, element)
+            }
+
+            // handle DOMUtils.ATTR_SELECTED_BINDING
+            if ((<DOMUtils.elWithUIXAttributes>element)[DOMUtils.ATTR_SELECTED_BINDING]) {
+                if ((<DOMUtils.elWithUIXAttributes>element)[DOMUtils.ATTR_SELECTED_BINDING].val == val) {
+                    (element as HTMLInputElement).checked = true;
+                }
             }
         }
 

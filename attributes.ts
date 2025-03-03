@@ -138,7 +138,7 @@ export const htmlElementAttributes = {
 	script: [...src, "type", "async", "defer", "nomodule", "crossorigin", "integrity", "referrerpolicy"],
 
 	progress: ["value", "max", "min"],
-	input: [...input, alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out", "value:in"],
+	input: [...input, alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out", "value:in", "value:selected"],
 	button: ["type", "disabled", "form"],
 	form: ["method", "enctype", "action", "rel"],
 	img: [alt, ...src, ...widthAndHeight, "border", "crossorigin", "ismap", "loading", "longdesc", "referrerpolicy", "sizes", "srcset", "usemap"],
@@ -186,7 +186,8 @@ export type htmlElementAttributeValues = {
 
 		value: primitive|Date,
 		"value:out": primitive|Date,
-		"value:in": primitive|Date
+		"value:in": primitive|Date,
+		"value:selected": string|number
 	}) 
 	// TODO: conditional attributes
 	// & (

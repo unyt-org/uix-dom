@@ -489,10 +489,17 @@ export class DOMUtils {
                 }
 
             }
-        
+
+            // value:selected initial state
+            if (attr == "value:selected") {
+                (<DOMUtils.elWithUIXAttributes><unknown>inputElement)[DOMUtils.ATTR_SELECTED_BINDING] = value;
+                // check if the defined value of the input is equal to the value of the pointer
+                if (inputElement.value == value.val) inputElement.checked = true;
+            }
+            
             // in
-            if (attr == "value" || attr == "value:in") {
-                const valid = this.setAttribute(element, "value", value.val, rootPath)
+            if (attr == "value" || attr == "value:in" || attr == "value:selected") {
+                const valid = attr=="value:selected" ? true : this.setAttribute(element, "value", value.val, rootPath)
                 const val = value;
                 if (valid) {
                     weakAction(
@@ -500,15 +507,22 @@ export class DOMUtils {
                         {element}, 
                         // init (called once)
                         ({element}) => {
-                            use("allow-globals", this, logger, val, rootPath, isolatedScope)
+                            use("allow-globals", this, logger, val, rootPath, isolatedScope, attr)
                             const handler = isolatedScope(v => {
-                                use("allow-globals", this, logger, rootPath, element)
+                                use("allow-globals", this, logger, rootPath, element, attr)
                                 const deref = element.deref();
                                 if (!deref) {
                                     logger.warn("Undetected garbage collection (uix-w0001)");
                                     return;
                                 }
-                                this.setAttribute(deref, "value", v, rootPath);
+                                // if value:selected, only update selection state
+                                if (attr == "value:selected") {
+                                    if (deref.value == v) deref.checked = true;
+                                }
+                                // set value attribute
+                                else {
+                                    this.setAttribute(deref, "value", v, rootPath);
+                                }
                             })
                             val.observe(handler);
                             return handler;
@@ -520,13 +534,6 @@ export class DOMUtils {
                     );
                 }
                 return valid;
-            }
-
-            // value:selected initial state
-            if (attr == "value:selected") {
-                (<DOMUtils.elWithUIXAttributes><unknown>inputElement)[DOMUtils.ATTR_SELECTED_BINDING] = value;
-                // check if the defined value of the input is equal to the value of the pointer
-                if (inputElement.value == value.val) inputElement.checked = true;
             }
 
             return true;

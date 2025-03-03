@@ -4,7 +4,7 @@
  * https://www.w3schools.com/tags/
  */
 
-import type { Datex } from "datex-core-legacy";
+import type { Time } from "datex-core-legacy/types/time.ts";
 import type { primitive } from "datex-core-legacy/types/abstract_types.ts"
 
 // general html specific types
@@ -184,9 +184,9 @@ export type htmlElementAttributeValues = {
 		step: htmlNumber,
 		type: "button"|"checkbox"|"color"|"date"|"datetime-local"|"email"|"file"|"hidden"|"image"|"month"|"number"|"password"|"radio"|"range"|"reset"|"search"|"submit"|"tel"|"text"|"time"|"url"|"week",
 
-		value: primitive|Date,
-		"value:out": primitive|Date,
-		"value:in": primitive|Date,
+		value: primitive|Time,
+		"value:out": primitive|Time,
+		"value:in": primitive|Time,
 		"value:selected": string|number
 	}) 
 	// TODO: conditional attributes
@@ -201,7 +201,7 @@ export type htmlElementAttributeValues = {
 	// 	} |
 	// 	{
 	// 		"type": "date"|"time"|"datetime-local"|"month"|"week",
-	// 		value: number|string|Date
+	// 		value: number|string|Time
 	// 	} |
 	// 	{
 	// 		"type": "color",

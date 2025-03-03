@@ -329,6 +329,13 @@ export class DOMUtils {
     private setLiveAttribute<T extends Element>(element:T, attr:string, value:Datex.RefLike<unknown>, rootPath?:string|URL):boolean {
         const isInputElement = element.tagName.toLowerCase() === "input";
         const isSelectElement = element.tagName.toLowerCase() === "select";
+        const isDateInput = isInputElement && (
+            (element as unknown as HTMLInputElement).type == "datetime-local" ||
+            (element as unknown as HTMLInputElement).type == "date" ||
+            (element as unknown as HTMLInputElement).type == "time" ||
+            (element as unknown as HTMLInputElement).type == "month" ||
+            (element as unknown as HTMLInputElement).type == "week"
+        );
 
         const type = Datex.Type.ofValue(value);
 
@@ -365,7 +372,16 @@ export class DOMUtils {
             // out
             if (attr == "value" || attr == "value:out") {
                 if (type.matchesType(Datex.Type.std.text)) element.addEventListener(event, () => handleSetVal(element.value))
-                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => handleSetVal(Number(element.value)))
+                else if (type.matchesType(Datex.Type.std.decimal)) element.addEventListener(event, () => {
+                    // date input
+                    if (isDateInput) {
+                        handleSetVal(new Time((element as unknown as HTMLInputElement).valueAsDate ?? new Date((element as unknown as HTMLInputElement).value)).getTime())
+                    }
+                    // normal input
+                    else {
+                        handleSetVal(Number(element.value))
+                    }
+                })
                 else if (type.matchesType(Datex.Type.std.integer)) element.addEventListener(event, () => handleSetVal(BigInt(element.value)))
                 else if (type.matchesType(Datex.Type.std.boolean)) element.addEventListener(event, () => handleSetVal(Boolean(element.value)))
                 else if (type.matchesType(Datex.Type.std.void) || type.matchesType(Datex.Type.std.null)) {console.warn("setting value attribute to " + type, element)}
@@ -507,7 +523,10 @@ export class DOMUtils {
             }
             // set value property
             else {
-                (element as HTMLInputElement).value = this.formatAttributeValue(val, root_path, element)
+                // if date input and value < 0, ignore
+                if (element instanceof HTMLInputElement && (element as HTMLInputElement).type == "datetime-local" && !(new Date(val as any).getTime() > 0)) return;
+                const newValue = this.formatAttributeValue(val, attr, root_path, element);
+                if ((element as HTMLInputElement).value !== newValue) (element as HTMLInputElement).value = newValue;
             }
         }
 
@@ -528,7 +547,7 @@ export class DOMUtils {
 
         // set stylesheet
         else if (attr == "stylesheet") {
-            element.append(this.createHTMLElement(`<link rel="stylesheet" href="${this.formatAttributeValue(val, root_path, element)}?scope"/>`))
+            element.append(this.createHTMLElement(`<link rel="stylesheet" href="${this.formatAttributeValue(val, attr, root_path, element)}?scope"/>`))
         }
 
         // update checkbox checked property (bug?)
@@ -655,7 +674,7 @@ export class DOMUtils {
                     (<DOMUtils.elWithUIXAttributes>element)[DOMUtils.EVENT_LISTENERS].get(eventName)!.add([handler, false]);
                 }
                 // default "action" (path)
-                else element.setAttribute(attr, this.formatAttributeValue(val, root_path, element));
+                else element.setAttribute(attr, this.formatAttributeValue(val, attr, root_path, element));
             }
             
         }
@@ -664,7 +683,7 @@ export class DOMUtils {
         else {
             if (val === false) element.removeAttribute(attr);
             else if (val === true) element.setAttribute(attr, "");
-            else element.setAttribute(attr, this.formatAttributeValue(val, root_path, element));
+            else element.setAttribute(attr, this.formatAttributeValue(val, attr, root_path, element));
         }
 
     
@@ -672,13 +691,80 @@ export class DOMUtils {
         
     }
 
-    formatAttributeValue(val:any, root_path?:string|URL, element?:Element): string {
-        if (root_path==undefined) return val?.toString?.() ?? ""
-        else if (typeof val == "string" && (val.startsWith("./") || val.startsWith("../"))) return new URL(val, root_path).toString();
-        else if (val instanceof Date) {
-            if ((element as HTMLInputElement).type == "datetime-local") return new Date(val.getTime() + new Date().getTimezoneOffset() * -60 * 1000).toISOString().slice(0,-8);
-            else return val.toISOString().slice(0,10);
+    getFormattedWeek(d: Date) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1)).getTime();
+        const weekNo = Math.ceil(( ( (d.getTime() - yearStart) / 86400000) + 1)/7);
+        return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2,"0")}`;
+    }
+
+    getDateFromFormattedWeek(weekString: string) {
+        const [year, week] = weekString.split("-W").map(Number)
+
+        if (week < 1 || week > 53) {
+          throw new RangeError("ISO 8601 weeks are numbered from 1 to 53");
+        } else if (!Number.isInteger(week)) {
+          throw new TypeError("Week must be an integer");
+        } else if (!Number.isInteger(year)) {
+          throw new TypeError("Year must be an integer");
         }
+        const simple = new Date(year, 0, 1 + (week - 1) * 7);
+        const dayOfWeek = simple.getDay();
+        const isoWeekStart = simple;
+        isoWeekStart.setDate(simple.getDate() - dayOfWeek + 1);
+        if (dayOfWeek > 4) {
+            isoWeekStart.setDate(isoWeekStart.getDate() + 7);
+        }
+        if (isoWeekStart.getFullYear() > year ||
+            (isoWeekStart.getFullYear() == year &&
+             isoWeekStart.getMonth() == 11 &&
+             isoWeekStart.getDate() > 28)) {
+            throw new RangeError(`${year} has no ISO week ${week}`);
+        }
+    
+        return isoWeekStart;
+    }
+
+    formatAttributeValue(val:any, attr: string, root_path?:string|URL, element?:Element): string {
+        if (root_path==undefined) return val?.toString?.() ?? ""
+        else if (attr == "value" && element instanceof HTMLInputElement) {
+            if (element.type == "datetime-local") {
+                const unixTime = val instanceof Date ? val.getTime() : new Date(val).getTime();
+                const showSeconds = element.step && Number(element.step) < 60;
+                return new Date(unixTime + new Date(unixTime).getTimezoneOffset() * -60 * 1000).toISOString().slice(0,showSeconds ? -5 : -8);
+            }
+            else if (element.type == "month") {
+                const date = val instanceof Date ? val : new Date(val);
+                return date.toISOString().slice(0,7)
+            }
+            else if (element.type == "week") {
+                try {
+                    let date = val instanceof Date ? val : new Date(val);
+                    // if invalid date, use getDateFromFormattedWeek
+                    if (isNaN(date.getTime())) date = this.getDateFromFormattedWeek(val);
+                    return this.getFormattedWeek(date);
+                }
+                catch {
+                    // return current value of input if invalid
+                    return element.value;
+                }
+            }
+            else if (element.type == "date") {
+                const date = val instanceof Date ? val : new Date(val);
+                return date.toISOString().slice(0,10)
+            }
+            else if (element.type == "time") {
+                const date = val instanceof Date ? val : new Date(val);
+                // show seconds if step is < 60
+                if (element.step && Number(element.step) < 60) return date.toISOString().slice(11,19)
+                else return date.toISOString().slice(11,16)
+            }
+            else {
+                return val?.toString?.() ?? ""
+            }
+        } 
+        else if (typeof val == "string" && (val.startsWith("./") || val.startsWith("../"))) return new URL(val, root_path).toString();
         else return val?.toString?.() ?? ""
     }
 

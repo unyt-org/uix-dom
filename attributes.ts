@@ -47,7 +47,10 @@ type customDefaultAttributeValues = {
 	"stylesheet": string|URL|null,
 	"shadow-root": boolean|'open'|'closed',
 	"datex-pointer": boolean,
-	"datex-update": "onchange"|"onsubmit"
+	"datex-update": "onchange"|"onsubmit",
+
+	// native non string attrs
+	"popover": "auto" | "manual" | "hint" | boolean,
 }
 
 export type validHTMLElementAttrs<El extends HTMLElement> = {

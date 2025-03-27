@@ -31,7 +31,7 @@ export type elementEventHandlerAttribute = typeof elementEventHandlerAttributesB
 
 // list of all default element attributes
 export const defaultElementAttributes = [
-	"accesskey", "class", "contenteditable", "contextmenu", "dir", "draggable", "dropzone", "hidden", "id", "lang", "spellcheck", "style", "tabindex", "title",
+	"accesskey", "class", "contenteditable", "contextmenu", "dir", "draggable", "dropzone", "hidden", "id", "lang", "spellcheck", "style", "tabindex", "title", "popover",
 	"role", "name", "slot",
 	// uix specific
 	"uix-module", "uix-title", "stylesheet",
@@ -138,8 +138,8 @@ export const htmlElementAttributes = {
 	script: [...src, "type", "async", "defer", "nomodule", "crossorigin", "integrity", "referrerpolicy"],
 
 	progress: ["value", "max", "min"],
-	input: [...input, alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out", "value:in", "value:selected"],
-	button: ["type", "disabled", "form"],
+	input: ["popovertargetaction", "popovertarget", ...input, alt, ...src, alt, ...widthAndHeight, "min", "minlength", "accept", "autocomplete", "autofocus", "checked", "dirname", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "list", "max", "maxlength", "multiple", "name", "pattern", "placeholder", "readonly", "required", "size", "step", "type", "value", "value:out", "value:in", "value:selected"],
+	button: ["popovertargetaction", "popovertarget", "type", "disabled", "form"],
 	form: ["method", "enctype", "action", "rel"],
 	img: [alt, ...src, ...widthAndHeight, "border", "crossorigin", "ismap", "loading", "longdesc", "referrerpolicy", "sizes", "srcset", "usemap"],
 	template: ["shadowrootmode"],
@@ -184,6 +184,8 @@ export type htmlElementAttributeValues = {
 		step: htmlNumber,
 		type: "button"|"checkbox"|"color"|"date"|"datetime-local"|"email"|"file"|"hidden"|"image"|"month"|"number"|"password"|"radio"|"range"|"reset"|"search"|"submit"|"tel"|"text"|"time"|"url"|"week",
 
+		popovertarget: string,
+		popovertargetaction: string,
 		value: primitive|Time,
 		"value:out": primitive|Time,
 		"value:in": primitive|Time,
@@ -231,7 +233,9 @@ export type htmlElementAttributeValues = {
 
 	button: {
 		type: "button"|"submit"|"reset",
-		disabled: boolean
+		disabled: boolean,
+		popovertarget: string,
+		popovertargetaction: string
 	},
 
 	form: rel & {

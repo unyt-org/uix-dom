@@ -151,6 +151,7 @@ export const htmlElementAttributes = {
 	source: [...src, "type"],
 	label: ["for"],
 	video: [...src, ...widthAndHeight, "autoplay", "controls", "loop", "muted", "poster", "preload", "playsinline"],
+	audio: [...src, "autoplay", "controls", "loop", "muted", "preload"],
 	textarea: [...input, "name", "value", "value:out", "value:in", "cols", "rows"],
 	option: ["value", "selected", "disabled"],
 	select: ["value", "autocomplete", "required"],
@@ -272,6 +273,14 @@ export type htmlElementAttributeValues = {
 		poster: string|URL,
 		preload: "auto"|"metadata"|"none"
 	},
+	audio: (src | {src: MediaStream}) & {
+		autoplay: boolean,
+		controls: boolean,
+		loop: boolean,
+		muted: boolean,
+		preload: "auto"|"metadata"|"none",
+	},
+
 	textarea: widthAndHeight & input & {
 		rows: htmlNumber|string,
 		cols: htmlNumber|string,

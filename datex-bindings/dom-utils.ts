@@ -1208,7 +1208,8 @@ export class DOMUtils {
                 const handler = isolatedScope((...args:any[]) => {
                     use("allow-globals", logger, ref, prevNode);
 
-                    let prevNodeDeref = prevNode.node?.deref()!;
+                    let prevNodeDeref = prevNode.node?.deref();
+                    if (!prevNodeDeref) return;
 
                     try {
                         let val = ref.val;

@@ -958,6 +958,14 @@ export class DOMUtils {
             }
         }
 
+        if (properties_object_or_property instanceof Datex.ReactiveValue && typeof properties_object_or_property == "object") {
+            Datex.ReactiveValue.observe(properties_object_or_property, () => {
+                for (const [property, value] of Object.entries(properties_object_or_property.val)) {
+                    this.setCSSProperty(element, property, value);
+                }
+            });
+        }
+
         return element;
     }
 

@@ -1244,8 +1244,7 @@ export class DOMUtils {
                         
                     }
                     catch (e) {
-                        console.log("Error binding node", ref, ref.val, prevNodeDeref)
-                        console.error(e)
+                        // console.error(e)
                     }  
                 });
 

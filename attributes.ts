@@ -327,9 +327,38 @@ export const svgTags = new Set(["animate", "animateMotion", "animateTransform", 
 // TODO: name collisions: "a", "script", "style",  "title", 
 
 const genericSvgAttributes = [
-	...cXY, ...widthAndHeight, ...xy, "x1","x2","y1","y2", "mask", "rx", "ry", "fill", "fill-rule", "stroke", "stroke-width", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "transform",
-	"mode", "in", "in2", "result", "filterUnits", "color-interpolation-filters","stop-color","offset","gradientUnits","gradientTransform",
-	"xmlns", "version", "xmlns:xlink", "viewBox", "preserveAspectRatio", "d", "stdDeviation", "values", "type", "clip-path", "text-anchor", "filter", "flood-opacity", "operator", "dy", "fill-opacity", "r"
+  // Global attributes
+  "id", "class", "style", "tabindex", "role", "aria-label",
+  "xml:base", "xml:lang", "xml:space", "focusable", "visibility", "display", "cursor", "color", "opacity",
+
+  // Position & size
+  ...cXY, ...xy, ...widthAndHeight, "x1","x2","y1","y2","cx","cy","r","rx","ry","points","pathLength",
+
+  // Core styling
+  "fill","fill-opacity","fill-rule","stroke","stroke-width","stroke-opacity",
+  "stroke-linecap","stroke-linejoin","stroke-miterlimit","stroke-dasharray","stroke-dashoffset",
+  "vector-effect","overflow","transform",
+
+  // Gradients & patterns
+  "gradientUnits","gradientTransform","spreadMethod","patternUnits","patternContentUnits","patternTransform",
+  "xlink:href","href","mask","maskUnits","maskContentUnits","clip-path",
+
+  // Filter attributes
+  "filter","result","in","in2","operator","stdDeviation","flood-color","flood-opacity",
+  "lighting-color","surfaceScale","specularExponent","kernelMatrix","kernelUnitLength",
+
+  // Markers
+  "marker-start","marker-mid","marker-end",
+
+  // Text & font
+  "text-anchor","dominant-baseline","baseline-shift","font-family","font-size","font-style",
+  "font-variant","font-weight","letter-spacing","word-spacing","writing-mode","text-decoration","dy",
+
+  // Animation attributes
+  "begin","dur","end","repeatCount","values","calcMode","keyTimes","keySplines","fill",
+
+  // SVG document attributes
+  "xmlns","version","xmlns:xlink","viewBox","preserveAspectRatio","d","type"
 ] as const;
 
 /** list of all allowed attributes for HTML elements */
@@ -367,7 +396,8 @@ export type svgElementAttributeValues = {
 		r: svgLength
 	},
 	tspan: xy,
-	text: xy
+	text: xy,
+	use: href & rel
 }
 
 

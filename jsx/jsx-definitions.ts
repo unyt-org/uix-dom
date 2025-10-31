@@ -71,7 +71,7 @@ declare global {
 			} 
 			// svg elements
 			& {
-				readonly [key in keyof SVGElementTagNameMap]: _IntrinsicAttributes<HTMLElementTagNameMap[key]> & {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & htmlAttrs<validSVGElementSpecificAttrs<key>, true>
+				readonly [key in keyof SVGElementTagNameMap]: _IntrinsicAttributes<SVGElementTagNameMap[key]> & {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[]} & htmlAttrs<validSVGElementSpecificAttrs<key>, true>
 			}
 			& Record<`${string}-${string}`, _IntrinsicAttributes<HTMLElement> & {children?: childrenOrChildrenPromise|childrenOrChildrenPromise[], [key: string]: unknown}> // allow custom elements
 			// other custom elements

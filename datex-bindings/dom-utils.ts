@@ -777,7 +777,7 @@ export class DOMUtils {
 
         // src path with import map specifier
         // TODO: currently only enabled for specific folder names to keep backwards compatibility, this should be enabled for all paths
-        else if (attr === "src" && typeof val == "string" && (val.startsWith("common/") || val.startsWith("frontend/"))) {
+        else if ((attr === "src" || attr === "href") && typeof val == "string" && (val.startsWith("common/") || val.startsWith("frontend/"))) {
             element.setAttribute(attr, `/@uix/src/${val}`);
         }
 

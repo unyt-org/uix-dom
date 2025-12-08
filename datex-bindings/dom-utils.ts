@@ -926,6 +926,13 @@ export class DOMUtils {
                 return date.toISOString().slice(0,10)
             }
             else if (element.type == "time") {
+                // empty value
+                if (!val) return "";
+
+                // if already in time (e.g. HH:mm:ss) format, return directly
+                if (typeof val == "string" && val.match(/^\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?$/)) return val;
+
+                // handle conversion from Date or number
                 const date = val instanceof Date ? val : new Date(val);
                 // show seconds if step is < 60
                 if (element.step && Number(element.step) < 60) return date.toISOString().slice(11,19)

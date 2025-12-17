@@ -219,28 +219,39 @@ export class DOMUtils {
 
             const Comment = this.context.Comment;
 
+            const getAbsoluteOffset = (k: number) => {
+                const startOffset = Array.from(parent.childNodes).indexOf(startAnchor);
+                return startOffset + 1 + k;
+            };
             const iterableHandler = new IterableHandler<appendableContent, Node>(children as appendableContent[], {
                 map: (v,k) => {
                     const {node: el} = this.valueToDOMNode(v);
                     return el;
                 },
-                onEntryRemoved: (v,k) => {
+                onEntryRemoved: (v, relative_k) => {
                     // remove kth child
-                    const node = parent.childNodes[k+1];
+                    const k = getAbsoluteOffset(relative_k);
+                    const node = parent.childNodes[k];
                     // out of bounds
                     if (!node || node === endAnchor || node === startAnchor){
                         return;
                     }
                     node.remove();
                 },
-                onNewEntry(v,k,p)  {
+                onNewEntry(v, relative_k, p)  {
                     // if kth child exists, replace, otherwise append at end
-                    const current = parent.childNodes[k+1];
+                    const k = getAbsoluteOffset(relative_k);
+                    const current = parent.childNodes[k];
                     if (current && current != endAnchor) parent.replaceChild(v, current);
                     else {
                         // fill gap if k is larger than current children
-                        if (k > parent.childNodes.length-2) {
-                            for (let i = parent.childNodes.length-2; i < k; i++) {
+                        const childrenArray = Array.from(parent.childNodes);
+                        const startAnchorIndex = childrenArray.indexOf(startAnchor);
+                        const endAnchorIndex = childrenArray.indexOf(endAnchor);
+                        const totalParentSectionLength = endAnchorIndex - startAnchorIndex - 1;
+                        
+                        if (relative_k > totalParentSectionLength) {
+                            for (let i = totalParentSectionLength; i < relative_k; i++) {
                                 parent.insertBefore(new Comment("empty"), endAnchor);
                             }
                         }

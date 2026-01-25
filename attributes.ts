@@ -157,6 +157,12 @@ export const htmlElementAttributes = {
 	select: ["value", "autocomplete", "required"],
 	dialog: ["open"],
 	table: ["cellspacing", "cellpadding", "align", "width", "border"],
+	td: ["colspan", "rowspan", "headers", "align", "valign", "width", "height"],
+	th: ["colspan", "rowspan", "headers", "align", "valign", "width", "height"],
+	tr: ["align", "valign"],
+	thead: ["align", "valign"],
+	tbody: ["align", "valign"],
+	tfoot: ["align", "valign"],
 	meta: ["content"],
 	optgroup: ["label", "disabled"],
 } as const satisfies {[key in keyof HTMLElementTagNameMap]?: readonly string[]};
@@ -299,6 +305,41 @@ export type htmlElementAttributeValues = {
 		align: string,
 		width: string, 
 		border: string
+	},
+
+	td: {
+		colspan: htmlNumber|string,
+		rowspan: htmlNumber|string,
+		headers: string,
+		align: string,
+		valign: string,
+		width: string,
+		height: string
+	},
+	th: {
+		colspan: htmlNumber|string,
+		rowspan: htmlNumber|string,
+		headers: string,
+		align: string,
+		valign: string,
+		width: string,
+		height: string
+	},
+	tr: {
+		align: string,
+		valign: string
+	},
+	thead: {
+		align: string,
+		valign: string
+	},
+	tbody: {
+		align: string,
+		valign: string
+	},
+	tfoot: {
+		align: string,
+		valign: string
 	},
 
 	optgroup: {

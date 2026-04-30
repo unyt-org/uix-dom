@@ -154,7 +154,7 @@ export const htmlElementAttributes = {
 	audio: [...src, "autoplay", "controls", "loop", "muted", "preload"],
 	textarea: [...input, "name", "value", "value:out", "value:in", "cols", "rows"],
 	option: ["value", "selected", "disabled"],
-	select: ["value", "autocomplete", "required"],
+	select: ["value", "autocomplete", "required", "disabled"],
 	dialog: ["open"],
 	table: ["cellspacing", "cellpadding", "align", "width", "border"],
 	td: ["colspan", "rowspan", "headers", "align", "valign", "width", "height"],
@@ -165,6 +165,7 @@ export const htmlElementAttributes = {
 	tfoot: ["align", "valign"],
 	meta: ["content"],
 	optgroup: ["label", "disabled"],
+	fieldset: ["disabled", "form", "name"],
 } as const satisfies {[key in keyof HTMLElementTagNameMap]?: readonly string[]};
 
 
@@ -231,6 +232,7 @@ export type htmlElementAttributeValues = {
 
 	select: {
 		required: boolean,
+		disabled: boolean,
 		value: primitive,
 		autocomplete: boolean | AutoFill,
 	},
@@ -341,11 +343,15 @@ export type htmlElementAttributeValues = {
 		align: string,
 		valign: string
 	},
-
 	optgroup: {
 		label: string,
 		disabled: boolean
 	},
+	fieldset: {
+		disabled: boolean,
+		form: string,
+		name: string,
+	}
 }
 
 

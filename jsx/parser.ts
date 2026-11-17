@@ -213,5 +213,11 @@ export function getParseJSX(context: DOMContext, domUtils: DOMUtils) {
 		
 	}
 
-	return parseJSX;
+	// Element and component construction is untracked: the created element sets up its own
+	// fine-grained bindings, so an enclosing transform (e.g. a JSX expression _$(() => ...))
+	// only depends on what its own expression reads (props are evaluated before this call),
+	// not on values read by binding setup or component construction (which would rebuild the
+	// whole subtree, e.g. an input on every keystroke).
+	return (type: Parameters<typeof parseJSX>[0], params: Record<string,unknown>, isJSXS = false) =>
+		(Datex.ReactiveValue.untracked ? Datex.ReactiveValue.untracked(() => parseJSX(type, params, isJSXS)) : parseJSX(type, params, isJSXS));
 }

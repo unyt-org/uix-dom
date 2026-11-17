@@ -217,6 +217,20 @@ export class DOMUtils {
             const endAnchor = new this.context.Comment("end " + Datex.Pointer.getByValue(children)?.idString())
             parent.append(startAnchor, endAnchor)
 
+            if (!(collapsedChildren instanceof Map)) {
+                // Arrays and Sets: keep the DOM between the anchors in the order of the current
+                // values by node identity (see reconcileListNodes): unchanged nodes stay in place,
+                // moved nodes are moved (moveBefore preserves focus/state where supported), new
+                // values become new nodes. Previously each index update replaced the node at that
+                // index, which re-created or shifted every following node.
+                const view = new ListBindingView(this, parent, startAnchor, endAnchor, ref);
+                // the parent keeps the binding alive; the children ref only holds it weakly
+                parent[Datex.Pointer.DISPOSABLES] = view;
+                view.sync();
+                view.observe();
+                return;
+            }
+
             const Comment = this.context.Comment;
 
             const getAbsoluteOffset = (k: number) => {
@@ -1354,3 +1368,99 @@ export class DOMUtils {
         return $(element)
     }
 }
+
+// removes the children observer of a collected list binding (see ListBindingView.observe)
+const listBindingCleanup = new FinalizationRegistry<{ref: Datex.ReactiveValue, callback: (...args: any[]) => void}>(
+    ({ref, callback}) => {try {ref.unobserve(callback);} catch {}}
+);
+
+/**
+ * Renders a reactive Array/Set as DOM nodes between two anchors, keeping node identity.
+ */
+class ListBindingView {
+    values: unknown[] = [];
+    nodes: Node[] = [];
+    // keeps the rendered value (e.g. a live map result) alive while the list is displayed: the
+    // pointer only holds a non-persistent value weakly (parent -> binding -> value)
+    current: unknown;
+    // `ref` is the reactive value (pointer) of the children: its current value is read on every
+    // change (e.g. a transform returning a new array each time), never a captured array object
+    constructor(private domUtils: DOMUtils, private parent: Element, private startAnchor: Comment, private endAnchor: Comment, private ref: Datex.ReactiveValue) {}
+
+    #isNode(value: unknown): value is Node {
+        const c = this.domUtils.context;
+        return value instanceof c.Element || value instanceof c.Text || value instanceof c.Comment;
+    }
+
+    observe() {
+        const weakSelf = new WeakRef(this);
+        const callback = () => weakSelf.deref()?.sync();
+        this.ref.observe(callback);
+        // held value: the pointer (holds a non-persistent value only weakly), never the value
+        listBindingCleanup.register(this, {ref: this.ref, callback});
+    }
+
+    sync() {
+        const current = Datex.ReactiveValue.collapseValue(this.ref, true, true) as Iterable<unknown>;
+        this.current = current;
+        const values: unknown[] = [];
+        if (current instanceof Array) {
+            for (let i = 0; i < current.length; i++) {
+                if (i in current) values.push(current[i]); // skip holes of in-progress native array operations
+            }
+        }
+        else for (const value of current ?? []) values.push(value);
+        // unchanged (e.g. further per-index events of the same splice)
+        if (values.length == this.values.length && values.every((v, i) => v === this.values[i])) return;
+
+        // previous nodes of non-node values (text, refs, ...) are reused by value identity
+        const pool = new Map<unknown, Node[]>();
+        this.values.forEach((value, i) => {
+            if (this.#isNode(value)) return;
+            if (!pool.has(value)) pool.set(value, []);
+            pool.get(value)!.push(this.nodes[i]);
+        });
+        const nodes = values.map(value => {
+            if (this.#isNode(value)) return value;
+            const queue = pool.get(value);
+            if (queue?.length) return queue.shift()!;
+            return this.domUtils.valueToDOMNode(value).node as Node;
+        });
+        this.values = values;
+        this.nodes = nodes;
+        reconcileListNodes(this.parent, this.startAnchor, this.endAnchor, nodes);
+    }
+}
+
+/** Puts exactly `nodes` (in order, each once) between the anchors with minimal DOM changes. */
+function reconcileListNodes(parent: Element, startAnchor: Node, endAnchor: Node, nodes: Node[]) {
+    const desired: Node[] = [];
+    const desiredSet = new Set<Node>();
+    for (const node of nodes) {
+        if (desiredSet.has(node)) continue; // a node can only be in the DOM once
+        desiredSet.add(node);
+        desired.push(node);
+    }
+    // remove nodes that are no longer part of the list
+    let node = startAnchor.nextSibling;
+    while (node && node !== endAnchor) {
+        const next = node.nextSibling;
+        if (!desiredSet.has(node)) parent.removeChild(node);
+        node = next;
+    }
+    // place the remaining/new nodes in order
+    let ref: Node|null = startAnchor.nextSibling;
+    const canMove = typeof (parent as any).moveBefore == "function";
+    for (const node of desired) {
+        if (node === ref) {ref = ref.nextSibling; continue;}
+        if (canMove && node.parentNode === parent) {
+            try {(parent as any).moveBefore(node, ref); continue;}
+            catch {/* fall back to insertBefore */}
+        }
+        parent.insertBefore(node, ref);
+    }
+}
+
+// List bindings keep nodes by identity (ListBindingView), so DATEX live map results may reuse the
+// entries of moved items (older DATEX versions do not have this option).
+if ("IDENTITY_PRESERVING_LISTS" in Datex.Runtime.OPTIONS) Datex.Runtime.OPTIONS.IDENTITY_PRESERVING_LISTS = true;

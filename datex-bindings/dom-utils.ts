@@ -8,7 +8,7 @@ import { JSTransferableFunction } from "datex-core-legacy/types/js-function.ts";
 import { client_type } from "datex-core-legacy/utils/constants.ts";
 import { weakAction } from "datex-core-legacy/utils/weak-action.ts";
 import { LazyPointer } from "datex-core-legacy/runtime/lazy-pointer.ts";
-import { isolatedScope } from "datex-core-legacy/utils/isolated-scope.ts";
+import { isolatedScope, markIsolated } from "datex-core-legacy/utils/isolated-scope.ts";
 import { Time } from "datex-core-legacy/types/time.ts";
 export const JSX_INSERT_STRING: unique symbol = Symbol("JSX_INSERT_STRING");
 
@@ -570,23 +570,11 @@ export class DOMUtils {
         if (isPrimitive && valid) {
             const val = value;
             
+            // isolated by construction (see DOMUtils.liveAttributeInit), equivalent to the
+            // previous use()-declared isolatedScope callbacks
             weakAction({element}, 
-                ({element}) => {
-                    use("allow-globals", this, attr, rootPath, logger, val, isolatedScope);
-
-                    const handler = isolatedScope((v:any,...args) => {
-                        use("allow-globals", this, logger, rootPath, element, attr);
-                        const deref = element.deref();
-                        if (!deref) {
-                            logger.warn("Undetected garbage collection (uix-w0001)");
-                            return;
-                        }
-                        this.setAttribute(deref, attr, v, rootPath);
-                    });
-                    val.observe(handler);
-                    return handler;
-                },
-                (handler, _, {val}) => val.unobserve(handler),
+                DOMUtils.liveAttributeInit(this, attr, rootPath, val),
+                DOMUtils.unobserveDeinit,
                 {val}
             );
         }
@@ -1224,60 +1212,98 @@ export class DOMUtils {
 
     bindNode(node: Node, ref:Datex.RefLike<unknown>) {
 
-        weakAction({node}, 
-            ({node}) => {
-                use("allow-globals", logger, Datex, isolatedScope, ref);
+        // isolated by construction (see DOMUtils.bindNodeInit), equivalent to the previous
+        // use()-declared isolatedScope callbacks
+        weakAction({node}, DOMUtils.bindNodeInit(ref), DOMUtils.bindNodeDeinit(ref));
+    }
 
-                let prevNode:{node?:WeakRef<Node>} = {node};
+    /*
+     * Factories for weakAction callbacks. Each returned function closes only over the factory's
+     * parameters (plus module bindings such as logger/Datex), exactly the dependencies the former
+     * use() declarations listed, so they never retain the bound DOM node strongly.
+     */
 
-                // TODO: dont reference 'ref' in handler, use args from handler
-                const handler = isolatedScope((...args:any[]) => {
-                    use("allow-globals", logger, ref, prevNode);
+    // setLiveAttribute: deps of init were (this, attr, rootPath, logger, val, isolatedScope)
+    private static liveAttributeInit(domUtils: DOMUtils, attr: string, rootPath: string|URL|undefined, val: Datex.ReactiveValue<unknown>) {
+        return markIsolated(({element}: {element: WeakRef<Element>}) => {
+            const handler = DOMUtils.liveAttributeHandler(domUtils, rootPath, element, attr);
+            val.observe(handler);
+            return handler;
+        });
+    }
 
-                    let prevNodeDeref = prevNode.node?.deref();
-                    if (!prevNodeDeref) return;
-
-                    try {
-                        let val = ref.val;
-
-                        // replace previous node if it is a node, otherwise update text content
-                        if (val instanceof Node) {
-                            if (val instanceof DocumentFragment) {
-                                const childNodes = val.childNodes;
-                                val = document.createElement("uix-fragment");
-                                val.append(...childNodes);
-                            }
-                            prevNode.node = new WeakRef(val);
-                            prevNodeDeref.replaceWith(val);
-                        }
-                        else {
-                            if (!(prevNodeDeref instanceof Text)) {
-                                const node = document.createTextNode("");
-                                prevNode.node = new WeakRef(node);
-                                prevNodeDeref.replaceWith(node);
-                                prevNodeDeref = node;
-                            }
-                            prevNodeDeref.textContent = (val!=undefined && val!==false) ? (<any>val).toString() : ''
-                        }
-                        
-                    }
-                    catch (e) {
-                        // console.error(e)
-                    }  
-                });
-
-                // TODO: potential memory leak
-                if (ref instanceof Datex.Pointer) ref.is_persistent = true;
-
-                Datex.ReactiveValue.observeAndInit(ref, handler);
-                return handler;
-            }, 
-            (handler, _, deps) => {
-                use("allow-globals", Datex, ref);
-                ref.is_persistent = false;
-                Datex.ReactiveValue.unobserve(ref, handler)
+    // setLiveAttribute: deps of the handler were (this, logger, rootPath, element, attr)
+    private static liveAttributeHandler(domUtils: DOMUtils, rootPath: string|URL|undefined, element: WeakRef<Element>, attr: string) {
+        return markIsolated((v:any, ..._args:any[]) => {
+            const deref = element.deref();
+            if (!deref) {
+                logger.warn("Undetected garbage collection (uix-w0001)");
+                return;
             }
-        );   
+            domUtils.setAttribute(deref, attr, v, rootPath);
+        });
+    }
+
+    // shared deinit without dependencies (was: (handler, _, {val}) => val.unobserve(handler))
+    private static unobserveDeinit = markIsolated((handler: any, _: unknown, {val}: {val: Datex.ReactiveValue<unknown>}) => val.unobserve(handler));
+
+    // bindNode: deps of init were (logger, Datex, isolatedScope, ref)
+    private static bindNodeInit(ref: Datex.RefLike<unknown>) {
+        return markIsolated(({node}: {node: WeakRef<Node>}) => {
+            const prevNode:{node?:WeakRef<Node>} = {node};
+            const handler = DOMUtils.bindNodeHandler(ref, prevNode);
+
+            // TODO: potential memory leak
+            if (ref instanceof Datex.Pointer) ref.is_persistent = true;
+
+            Datex.ReactiveValue.observeAndInit(ref, handler);
+            return handler;
+        });
+    }
+
+    // bindNode: deps of deinit were (Datex, ref)
+    private static bindNodeDeinit(ref: Datex.RefLike<unknown>) {
+        return markIsolated((handler: any) => {
+            (ref as any).is_persistent = false;
+            Datex.ReactiveValue.unobserve(ref, handler)
+        });
+    }
+
+    // bindNode: deps of the handler were (logger, ref, prevNode)
+    // TODO: dont reference 'ref' in handler, use args from handler
+    private static bindNodeHandler(ref: Datex.RefLike<unknown>, prevNode: {node?:WeakRef<Node>}) {
+        return markIsolated((..._args:any[]) => {
+            let prevNodeDeref = prevNode.node?.deref();
+            if (!prevNodeDeref) return;
+
+            try {
+                let val = ref.val;
+
+                // replace previous node if it is a node, otherwise update text content
+                if (val instanceof Node) {
+                    if (val instanceof DocumentFragment) {
+                        const childNodes = val.childNodes;
+                        val = document.createElement("uix-fragment");
+                        val.append(...childNodes);
+                    }
+                    prevNode.node = new WeakRef(val);
+                    prevNodeDeref.replaceWith(val);
+                }
+                else {
+                    if (!(prevNodeDeref instanceof Text)) {
+                        const node = document.createTextNode("");
+                        prevNode.node = new WeakRef(node);
+                        prevNodeDeref.replaceWith(node);
+                        prevNodeDeref = node;
+                    }
+                    prevNodeDeref.textContent = (val!=undefined && val!==false) ? (<any>val).toString() : ''
+                }
+                
+            }
+            catch (e) {
+                // console.error(e)
+            }
+        });
     }
 
     replaceWith(node: Element, newContent: any, lazy = false) {
@@ -1351,6 +1377,36 @@ export class DOMUtils {
     }
 
     addProxy(element:Element) {
+        // In the browser, the element's DATEX pointer is created as soon as anything can observe
+        // it (DX_PTR/$/$$ access, getByValue, createOrGet, serialization, cloneNode binding ...),
+        // instead of for every rendered element. The pointer itself is created by the same $()
+        // call, so identity, type, cloneNode binding and remote behaviour are unchanged.
+        if (client_type == "browser") {
+            deferElementPointer(element);
+            return element;
+        }
         return $(element)
     }
+}
+
+/**
+ * cloneNode for elements whose pointer is deferred. Equivalent to the cloneNode override that
+ * the element's pointer installs (see type-definitions.ts create_proxy): the clone is bound to its
+ * own new (deferred) pointer. Shared by all deferred elements.
+ */
+function deferredCloneNode(this: Element, deep?: boolean) {
+    const clone = Object.getPrototypeOf(this).cloneNode.call(this, deep) as Element;
+    clone.removeAttribute("uix-ptr");
+    delete (clone as any)[Datex.DX_PTR];
+    deferElementPointer(clone);
+    return clone;
+}
+
+function deferElementPointer(element: Element) {
+    const deferred = Datex.Pointer.deferPointerCreation(element, () => {
+        // restore prototype cloneNode so the pointer's create_proxy binds the original method
+        if (Object.hasOwn(element, "cloneNode") && (element as any).cloneNode === deferredCloneNode) delete (element as any).cloneNode;
+        $(element);
+    });
+    if (deferred) (element as any).cloneNode = deferredCloneNode;
 }
